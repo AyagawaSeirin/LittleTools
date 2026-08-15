@@ -8,6 +8,7 @@ import {
   InfoCircleOutlined,
   KeyOutlined,
   NumberOutlined,
+  RadarChartOutlined,
 } from '@ant-design/icons-vue'
 
 export interface ToolItem {
@@ -92,6 +93,15 @@ export const tools: ToolItem[] = [
     description: '转换 Base64、URL、Unicode、Hex 等编码',
     icon: CodeOutlined,
     color: '#496a94',
+  },
+  {
+    key: 'nmap',
+    path: '/nmap-generator',
+    name: 'Nmap 命令生成器',
+    shortName: 'Nmap 命令',
+    description: '可视化配置目标、扫描方式与输出参数',
+    icon: RadarChartOutlined,
+    color: '#77548f',
   },
 ]
 

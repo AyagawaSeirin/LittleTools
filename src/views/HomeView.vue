@@ -13,7 +13,7 @@ import { tools } from '../config/tools'
       </div>
       <div class="hero-index" aria-hidden="true">
         <span>LT</span>
-        <small>08 tools</small>
+        <small>{{ String(tools.length).padStart(2, '0') }} tools</small>
       </div>
     </section>
 

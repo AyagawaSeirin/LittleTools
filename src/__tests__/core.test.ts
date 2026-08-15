@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { decodeText, encodeText } from '../utils/encoding'
 import { cidrRange, formatIPv4, formatIPv6, parseIPv4, parseIPv6 } from '../utils/ip'
 import { generatePassword } from '../utils/password'
+import { buildNmapCommand, type NmapCommandOptions } from '../utils/nmap'
 
 describe('IP utilities', () => {
   it('round trips IPv4 addresses', () => {
@@ -37,5 +38,59 @@ describe('password generation', () => {
     expect(password).toMatch(/[A-Z]/)
     expect(password).toMatch(/[0-9]/)
     expect(password).toMatch(/[^a-zA-Z0-9]/)
+  })
+})
+
+const nmapDefaults: NmapCommandOptions = {
+  target: 'scanme.nmap.org',
+  useSudo: false,
+  scanType: 'syn',
+  portMode: 'default',
+  customPorts: '22,80,443',
+  topPorts: 100,
+  serviceVersion: false,
+  osDetection: false,
+  scriptPreset: 'none',
+  noPing: false,
+  onlyOpen: false,
+  traceroute: false,
+  showReason: false,
+  ipv6: false,
+  verbose: false,
+  timing: 3,
+  dnsMode: 'default',
+  outputMode: 'none',
+  outputName: 'nmap-scan',
+}
+
+describe('Nmap command generation', () => {
+  it('builds a simple default SYN scan', () => {
+    expect(buildNmapCommand(nmapDefaults)).toBe('nmap -sS -T3 scanme.nmap.org')
+  })
+
+  it('combines detection, ports, scripts and output', () => {
+    expect(buildNmapCommand({
+      ...nmapDefaults,
+      target: '192.168.1.0/24',
+      scanType: 'tcp-udp',
+      portMode: 'custom',
+      customPorts: '53,80,443,8000-8100',
+      serviceVersion: true,
+      osDetection: true,
+      scriptPreset: 'web',
+      noPing: true,
+      onlyOpen: true,
+      timing: 4,
+      outputMode: 'all',
+      outputName: 'reports/lan-scan',
+    })).toBe('nmap -sS -sU -p 53,80,443,8000-8100 -sV -O --script http-title,http-headers --open -Pn -T4 -oA reports/lan-scan 192.168.1.0/24')
+  })
+
+  it('rejects shell syntax in targets', () => {
+    expect(() => buildNmapCommand({ ...nmapDefaults, target: 'example.com;whoami' })).toThrow('目标仅支持')
+  })
+
+  it('rejects invalid port ranges', () => {
+    expect(() => buildNmapCommand({ ...nmapDefaults, portMode: 'custom', customPorts: '443-80' })).toThrow('端口必须')
   })
 })

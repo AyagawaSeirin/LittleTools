@@ -42,6 +42,8 @@ npm run preview
 
 站点使用 hash 路由和相对资源路径，因此可部署在用户主页或任意仓库子路径下，不需要额外配置 `base`。
 
+当前自定义域名由 [`public/CNAME`](public/CNAME) 写入 Vite 构建产物。GitHub Pages 的发布源必须选择 **GitHub Actions**，不能直接从仓库根目录发布源码。
+
 ## 数据与隐私
 
 密码、日期、端口、随机 IP、CIDR、时间戳和文本编码均在浏览器本地处理。只有“IP 信息查询”会在用户点击查询后请求第三方服务 [ipwho.is](https://ipwho.is/)；主服务不可用时，指定 IP 会改由 [monip.lws.fr](https://monip.lws.fr/sv/api) 查询。待查询 IP 会发送给实际使用的服务，本项目本身不存储查询内容。

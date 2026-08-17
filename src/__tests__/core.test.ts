@@ -3,6 +3,7 @@ import { decodeText, encodeText } from '../utils/encoding'
 import { cidrRange, formatIPv4, formatIPv6, parseIPv4, parseIPv6 } from '../utils/ip'
 import { generatePassword } from '../utils/password'
 import { buildNmapCommand, type NmapCommandOptions } from '../utils/nmap'
+import { buildIperf3Command, defaultIperf3Options } from '../utils/iperf3'
 
 describe('IP utilities', () => {
   it('round trips IPv4 addresses', () => {
@@ -92,5 +93,48 @@ describe('Nmap command generation', () => {
 
   it('rejects invalid port ranges', () => {
     expect(() => buildNmapCommand({ ...nmapDefaults, portMode: 'custom', customPorts: '443-80' })).toThrow('端口必须')
+  })
+})
+
+describe('iperf3 command generation', () => {
+  it('builds the default client command', () => {
+    expect(buildIperf3Command(defaultIperf3Options())).toBe('iperf3 -c iperf3.example.com -t 10')
+  })
+
+  it('builds a bidirectional parallel UDP test', () => {
+    expect(buildIperf3Command({
+      ...defaultIperf3Options(),
+      host: '10.0.0.20',
+      protocol: 'udp',
+      direction: 'bidir',
+      bitrate: '100M',
+      burst: 20,
+      parallel: 4,
+      length: '1400',
+      udpCounters64: true,
+      dontFragment: true,
+      outputMode: 'json-stream',
+      jsonStreamFull: true,
+    })).toBe('iperf3 -c 10.0.0.20 -u --json-stream --json-stream-full-output -t 10 -P 4 --bidir -b 100M/20 -l 1400 --udp-counters-64bit --dont-fragment')
+  })
+
+  it('builds a one-off authenticated server', () => {
+    expect(buildIperf3Command({
+      ...defaultIperf3Options(),
+      mode: 'server',
+      port: 5002,
+      serverOneOff: true,
+      serverIdleTimeout: 60,
+      serverMaxDuration: 300,
+      serverBitrateLimit: '1G/5',
+      rsaPrivateKey: '/etc/iperf/private.pem',
+      authorizedUsers: '/etc/iperf/users.csv',
+      logfile: '/var/log/iperf3.log',
+    })).toBe('iperf3 -s -p 5002 --logfile /var/log/iperf3.log -1 --idle-timeout 60 --server-max-duration 300 --server-bitrate-limit 1G/5 --rsa-private-key-path /etc/iperf/private.pem --authorized-users-path /etc/iperf/users.csv')
+  })
+
+  it('quotes labels safely and rejects invalid hosts', () => {
+    expect(buildIperf3Command({ ...defaultIperf3Options(), title: 'Office uplink' })).toContain("-T 'Office uplink'")
+    expect(() => buildIperf3Command({ ...defaultIperf3Options(), host: 'server;whoami' })).toThrow('服务端地址格式无效')
   })
 })

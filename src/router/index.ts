@@ -15,6 +15,7 @@ const router = createRouter({
     { path: '/ip-info', component: () => import('../views/IpInfoView.vue') },
     { path: '/text-encoding', component: () => import('../views/TextEncodingView.vue') },
     { path: '/nmap-generator', component: () => import('../views/NmapGeneratorView.vue') },
+    { path: '/iperf3-generator', component: () => import('../views/Iperf3GeneratorView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })

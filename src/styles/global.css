@@ -117,6 +117,10 @@ button, input, textarea { font: inherit; }
 
 .topbar-left, .topbar-actions, .page-context { display: flex; align-items: center; }
 .topbar-actions { gap: 4px; }
+.cache-button { position: relative; display: inline-flex; align-items: center; gap: 5px; }
+.cache-button-label { font-size: 12px; }
+.update-dot { position: absolute; top: 7px; right: 4px; width: 6px; height: 6px; border: 1px solid var(--panel-bg); border-radius: 50%; background: #d56a4a; }
+.offline-tag { display: inline-flex; align-items: center; gap: 5px; margin-inline-end: 3px; border-color: var(--line); background: var(--panel-subtle); color: var(--text-muted); }
 .page-context { gap: 10px; font-size: 13px; }
 .page-context span, .page-context b { color: var(--text-muted); font-weight: 400; }
 .mobile-menu-button { display: none; }
@@ -261,6 +265,7 @@ button, input, textarea { font: inherit; }
 @media (max-width: 640px) {
   .content-inner { width: calc(100% - 24px); padding-top: 24px; }
   .page-context span, .page-context b { display: none; }
+  .cache-button-label, .offline-tag span { display: none; }
   .tool-page-header { align-items: center; margin-bottom: 20px; }
   .tool-page-icon { width: 42px; height: 42px; font-size: 19px; }
   .tool-page-header p { font-size: 13px; }

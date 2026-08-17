@@ -7,17 +7,21 @@ import {
   AppstoreOutlined,
   BgColorsOutlined,
   BulbOutlined,
+  CloudSyncOutlined,
+  DisconnectOutlined,
   MenuOutlined,
   ToolOutlined,
 } from '@ant-design/icons-vue'
 import { tools, findTool } from './config/tools'
 import { useTheme } from './composables/useTheme'
+import { useServiceWorker } from './composables/useServiceWorker'
 
 const route = useRoute()
 const router = useRouter()
 const drawerOpen = ref(false)
 const colorOpen = ref(false)
 const { isDark, primaryColor, themeLabel, resetColor } = useTheme()
+const { isAvailable: cacheAvailable, isOffline, isUpdating, updateAvailable, cacheButtonText, cacheButtonTitle, refreshCache } = useServiceWorker()
 const colorPresets = ['#276b63', '#2463a7', '#7a4f9a', '#a44d58', '#a05d24', '#486b3d']
 
 const selectedKeys = computed(() => [route.path])
@@ -83,6 +87,14 @@ function navigate({ key }: { key: string }) {
               </div>
             </div>
             <div class="topbar-actions">
+              <a-tag v-if="isOffline" class="offline-tag"><DisconnectOutlined /> <span>离线模式</span></a-tag>
+              <a-tooltip v-if="cacheAvailable" :title="cacheButtonTitle">
+                <a-button class="cache-button" type="text" :loading="isUpdating" :disabled="isOffline" aria-label="更新本地缓存" @click="refreshCache">
+                  <template #icon><CloudSyncOutlined /></template>
+                  <span class="cache-button-label">{{ cacheButtonText }}</span>
+                  <i v-if="updateAvailable" class="update-dot" />
+                </a-button>
+              </a-tooltip>
               <a-popover v-model:open="colorOpen" trigger="click" placement="bottomRight">
                 <template #content>
                   <div class="color-picker-panel">

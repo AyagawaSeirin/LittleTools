@@ -3,6 +3,7 @@ import {
   CalendarOutlined,
   ClockCircleOutlined,
   CodeOutlined,
+  DashboardOutlined,
   DeploymentUnitOutlined,
   GlobalOutlined,
   InfoCircleOutlined,
@@ -102,6 +103,15 @@ export const tools: ToolItem[] = [
     description: '可视化配置目标、扫描方式与输出参数',
     icon: RadarChartOutlined,
     color: '#77548f',
+  },
+  {
+    key: 'iperf3',
+    path: '/iperf3-generator',
+    name: 'iperf3 命令生成器',
+    shortName: 'iperf3 命令',
+    description: '可视化生成 TCP、UDP 与 SCTP 性能测试命令',
+    icon: DashboardOutlined,
+    color: '#39728a',
   },
 ]
 

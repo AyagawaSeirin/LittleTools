@@ -4,6 +4,7 @@ import { cidrRange, formatIPv4, formatIPv6, parseIPv4, parseIPv6 } from '../util
 import { generatePassword } from '../utils/password'
 import { buildNmapCommand, type NmapCommandOptions } from '../utils/nmap'
 import { buildIperf3Command, defaultIperf3Options } from '../utils/iperf3'
+import { buildTcpdumpCommand, defaultTcpdumpOptions } from '../utils/tcpdump'
 
 describe('IP utilities', () => {
   it('round trips IPv4 addresses', () => {
@@ -136,5 +137,50 @@ describe('iperf3 command generation', () => {
   it('quotes labels safely and rejects invalid hosts', () => {
     expect(buildIperf3Command({ ...defaultIperf3Options(), title: 'Office uplink' })).toContain("-T 'Office uplink'")
     expect(() => buildIperf3Command({ ...defaultIperf3Options(), host: 'server;whoami' })).toThrow('服务端地址格式无效')
+  })
+})
+
+describe('tcpdump command generation', () => {
+  it('builds the default live capture command', () => {
+    expect(buildTcpdumpCommand(defaultTcpdumpOptions())).toBe('sudo tcpdump -i any')
+  })
+
+  it('builds a visual HTTPS capture filter', () => {
+    expect(buildTcpdumpCommand({
+      ...defaultTcpdumpOptions(),
+      interface: 'eth0',
+      packetCount: 100,
+      nameResolution: 'numeric',
+      verbosity: 2,
+      protocol: 'tcp',
+      hostDirection: 'src',
+      host: '10.0.0.8',
+      portMode: 'single',
+      port: 443,
+    })).toBe("sudo tcpdump -i eth0 -c 100 -nn -vv -- 'tcp and src host 10.0.0.8 and port 443'")
+  })
+
+  it('builds a rotating pcap capture', () => {
+    expect(buildTcpdumpCommand({
+      ...defaultTcpdumpOptions(),
+      writeFile: 'captures/net-%Y%m%d-%H%M.pcap',
+      rotateSize: '100M',
+      rotateSeconds: 3600,
+      fileCount: 24,
+      postRotate: 'gzip',
+      protocol: 'udp',
+      portMode: 'single',
+      port: 53,
+    })).toBe("sudo tcpdump -i any -w captures/net-%Y%m%d-%H%M.pcap -C 100M -G 3600 -W 24 -z gzip -- 'udp and port 53'")
+  })
+
+  it('supports read mode and interface listing', () => {
+    expect(buildTcpdumpCommand({ ...defaultTcpdumpOptions(), mode: 'read', useSudo: false, readFile: 'capture.pcap', countOnly: true })).toBe('tcpdump -r capture.pcap --count')
+    expect(buildTcpdumpCommand({ ...defaultTcpdumpOptions(), mode: 'list-interfaces', useSudo: false })).toBe('tcpdump -D')
+  })
+
+  it('rejects unsafe visual endpoints and multiline filters', () => {
+    expect(() => buildTcpdumpCommand({ ...defaultTcpdumpOptions(), host: '10.0.0.1;id' })).toThrow('主机格式无效')
+    expect(() => buildTcpdumpCommand({ ...defaultTcpdumpOptions(), filterSource: 'custom', customExpression: 'tcp\nport 80' })).toThrow('不能包含换行符')
   })
 })

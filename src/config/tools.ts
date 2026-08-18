@@ -1,5 +1,6 @@
 import type { Component } from 'vue'
 import {
+  BugOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
   CodeOutlined,
@@ -112,6 +113,15 @@ export const tools: ToolItem[] = [
     description: '可视化生成 TCP、UDP 与 SCTP 性能测试命令',
     icon: DashboardOutlined,
     color: '#39728a',
+  },
+  {
+    key: 'tcpdump',
+    path: '/tcpdump-generator',
+    name: 'tcpdump 命令生成器',
+    shortName: 'tcpdump 命令',
+    description: '可视化生成抓包、pcap 分析与 BPF 过滤命令',
+    icon: BugOutlined,
+    color: '#8a5f3a',
   },
 ]
 

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
-import { CheckOutlined, ClearOutlined, CodeSandboxOutlined, CompressOutlined, CopyOutlined, DownloadOutlined, FormatPainterOutlined } from '@ant-design/icons-vue'
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { CheckOutlined, ClearOutlined, CodeSandboxOutlined, CompressOutlined, CopyOutlined, DownOutlined, DownloadOutlined, FormatPainterOutlined, SearchOutlined, UpOutlined } from '@ant-design/icons-vue'
 import ToolPageHeader from '../components/ToolPageHeader.vue'
 import ToolCard from '../components/ToolCard.vue'
 import JsonTreeNode from '../components/JsonTreeNode.vue'
 import { rememberToolSettings } from '../composables/useToolSettings'
-import { minifyJson, parseJson, stringifyJson, utf8Size, type JsonParseResult } from '../utils/json'
+import { findJsonMatches, minifyJson, parseJson, stringifyJson, utf8Size, type JsonParseResult } from '../utils/json'
 
 const example = `{
   "project": "LittleTools",
@@ -23,15 +23,19 @@ const example = `{
 
 const source = ref(example)
 const indent = ref<'2' | '4' | 'tab'>('2')
+const treeSearch = ref('')
 const result = shallowRef<JsonParseResult>(parseJson(source.value))
 const editorContainer = ref<HTMLElement | null>(null)
+const treeContainer = ref<HTMLElement | null>(null)
 const copied = ref(false)
 const expansionMode = ref<'all' | 'none' | 'default'>('default')
 const controlVersion = ref(0)
 const treeRevision = ref(0)
+const activeMatchIndex = ref(-1)
 let parseTimer = 0
 
-rememberToolSettings('json-formatter', { source, indent })
+rememberToolSettings('json-formatter', { source, indent, treeSearch })
+result.value = parseJson(source.value)
 
 watch(source, () => {
   window.clearTimeout(parseTimer)
@@ -42,6 +46,14 @@ onBeforeUnmount(() => window.clearTimeout(parseTimer))
 const validResult = computed(() => result.value.ok ? result.value : null)
 const bytes = computed(() => utf8Size(source.value))
 const minifiedBytes = computed(() => validResult.value ? utf8Size(minifyJson(validResult.value.value)) : 0)
+const searchMatches = computed(() => validResult.value ? findJsonMatches(validResult.value.value, treeSearch.value) : [])
+const matchingPaths = computed(() => searchMatches.value.map((match) => match.path))
+const activeMatchPath = computed(() => searchMatches.value[activeMatchIndex.value]?.path || '')
+const searchStatus = computed(() => {
+  if (!treeSearch.value.trim()) return '搜索键名、值或 JSONPath'
+  if (!searchMatches.value.length) return '没有匹配结果'
+  return `${activeMatchIndex.value + 1} / ${searchMatches.value.length}`
+})
 const typeSummary = computed(() => {
   if (!validResult.value) return []
   const stats = validResult.value.stats
@@ -52,6 +64,18 @@ const typeSummary = computed(() => {
     { label: '数组', value: stats.arrays },
     { label: '最大层级', value: stats.maxDepth },
   ]
+})
+
+watch(searchMatches, (matches) => {
+  activeMatchIndex.value = matches.length ? 0 : -1
+  void focusActiveMatch()
+}, { immediate: true })
+
+watch(treeSearch, (query, previousQuery) => {
+  if (!query.trim() && previousQuery.trim()) {
+    setExpansion('default')
+    void nextTick(() => { treeRevision.value += 1 })
+  }
 })
 
 function parseNow() {
@@ -79,6 +103,19 @@ function minifySource() {
 function setExpansion(mode: 'all' | 'none' | 'default') {
   expansionMode.value = mode
   controlVersion.value += 1
+}
+
+async function focusActiveMatch() {
+  if (!activeMatchPath.value) return
+  await nextTick()
+  treeContainer.value?.querySelector<HTMLElement>('.json-node-row.active-match')?.scrollIntoView({ block: 'center' })
+}
+
+function moveMatch(direction: -1 | 1) {
+  const total = searchMatches.value.length
+  if (!total) return
+  activeMatchIndex.value = (activeMatchIndex.value + direction + total) % total
+  void focusActiveMatch()
 }
 
 function focusError() {
@@ -165,7 +202,22 @@ function loadExample() {
           <span><small>压缩后</small><b>{{ minifiedBytes.toLocaleString() }} B</b></span>
         </div>
 
-        <div class="json-tree-wrap">
+        <div v-if="result.ok" class="tree-search-bar">
+          <a-input
+            v-model:value="treeSearch"
+            allow-clear
+            aria-label="在树形视图中搜索"
+            placeholder="搜索键名、值或 JSONPath"
+            @press-enter="moveMatch(1)"
+          >
+            <template #prefix><SearchOutlined /></template>
+          </a-input>
+          <span class="search-status" aria-live="polite">{{ searchStatus }}</span>
+          <a-button size="small" :disabled="!searchMatches.length" aria-label="上一个匹配结果" @click="moveMatch(-1)"><UpOutlined /></a-button>
+          <a-button size="small" :disabled="!searchMatches.length" aria-label="下一个匹配结果" @click="moveMatch(1)"><DownOutlined /></a-button>
+        </div>
+
+        <div ref="treeContainer" class="json-tree-wrap">
           <JsonTreeNode
             v-if="result.ok"
             :key="treeRevision"
@@ -174,6 +226,9 @@ function loadExample() {
             path="$"
             :expansion-mode="expansionMode"
             :control-version="controlVersion"
+            :search-query="treeSearch"
+            :matching-paths="matchingPaths"
+            :active-match-path="activeMatchPath"
           />
           <div v-else class="tree-empty">
             <CodeSandboxOutlined />
@@ -219,6 +274,9 @@ function loadExample() {
 .tree-stats > span { display: flex; min-width: 72px; flex: 1 1 auto; align-items: baseline; justify-content: space-between; gap: 7px; margin: 0; padding: 7px 9px; background: var(--panel-bg); }
 .tree-stats small { color: var(--text-muted); font-size: 9px; }
 .tree-stats b { color: var(--text-main); font-family: monospace; font-size: 11px; }
+.tree-search-bar { display: grid; grid-template-columns: minmax(160px, 1fr) auto 28px 28px; align-items: center; gap: 6px; padding: 9px 14px; border-bottom: 1px solid var(--line); background: var(--panel-bg); }
+.tree-search-bar :deep(.ant-input-affix-wrapper) { min-width: 0; }
+.search-status { min-width: 92px; color: var(--text-muted); font-family: "SFMono-Regular", Consolas, monospace; font-size: 10px; text-align: right; white-space: nowrap; }
 .json-tree-wrap { min-height: 540px; max-height: 720px; padding: 10px 7px 20px; overflow: auto; background: var(--panel-bg); }
 .tree-empty { display: flex; min-height: 500px; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); text-align: center; }
 .tree-empty > :first-child { margin-bottom: 12px; font-size: 28px; }
@@ -226,5 +284,5 @@ function loadExample() {
 .tree-empty span { margin-top: 5px; font-size: 11px; }
 .json-workbench > .notice { margin: 0 16px 16px; }
 @media (max-width: 980px) { .json-panes { grid-template-columns: 1fr; } .editor-pane { border-right: 0; border-bottom: 1px solid var(--line); } .json-editor :deep(textarea) { min-height: 420px !important; } .json-tree-wrap { min-height: 420px; } }
-@media (max-width: 640px) { .json-toolbar > .ant-btn { flex: 1 1 auto; } .toolbar-spacer { display: none; } .indent-select { width: 100%; } .pane-heading { align-items: flex-start; } .tree-actions { flex-basis: 100%; } }
+@media (max-width: 640px) { .json-toolbar > .ant-btn { flex: 1 1 auto; } .toolbar-spacer { display: none; } .indent-select { width: 100%; } .pane-heading { align-items: flex-start; } .tree-actions { flex-basis: 100%; } .tree-search-bar { grid-template-columns: minmax(0, 1fr) 28px 28px; } .search-status { grid-column: 1 / -1; grid-row: 2; min-width: 0; text-align: left; } }
 </style>

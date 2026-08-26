@@ -23,6 +23,11 @@ export interface JsonStats {
   maxDepth: number
 }
 
+export interface JsonSearchMatch {
+  path: string
+  matchedBy: Array<'key' | 'value' | 'path'>
+}
+
 export type JsonParseResult =
   | { ok: true; value: unknown; stats: JsonStats }
   | { ok: false; issue: JsonIssue }
@@ -115,6 +120,42 @@ export function stringifyJson(value: unknown, indent: '2' | '4' | 'tab') {
 
 export function minifyJson(value: unknown) {
   return JSON.stringify(value)
+}
+
+export function findJsonMatches(value: unknown, query: string) {
+  const needle = query.trim().toLocaleLowerCase()
+  if (!needle) return [] as JsonSearchMatch[]
+
+  const matches: JsonSearchMatch[] = []
+  const isPathQuery = needle.startsWith('$')
+
+  function visit(current: unknown, path: string, nodeKey?: string | number) {
+    const matchedBy: JsonSearchMatch['matchedBy'] = []
+    const keyText = nodeKey === undefined ? '' : String(nodeKey).toLocaleLowerCase()
+    if (!isPathQuery && keyText.includes(needle)) matchedBy.push('key')
+    if (isPathQuery && path.toLocaleLowerCase() === needle) matchedBy.push('path')
+
+    const isContainer = current !== null && typeof current === 'object'
+    if (!isPathQuery && !isContainer) {
+      const valueText = typeof current === 'string' ? current : String(current)
+      if (valueText.toLocaleLowerCase().includes(needle)) matchedBy.push('value')
+    }
+    if (matchedBy.length) matches.push({ path, matchedBy })
+
+    if (Array.isArray(current)) {
+      current.forEach((item, index) => visit(item, `${path}[${index}]`, index))
+      return
+    }
+    if (current !== null && typeof current === 'object') {
+      Object.entries(current as Record<string, unknown>).forEach(([key, item]) => {
+        const childPath = /^[A-Za-z_$][\w$]*$/.test(key) ? `${path}.${key}` : `${path}[${JSON.stringify(key)}]`
+        visit(item, childPath, key)
+      })
+    }
+  }
+
+  visit(value, '$')
+  return matches
 }
 
 export function utf8Size(value: string) {

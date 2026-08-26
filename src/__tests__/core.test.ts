@@ -5,7 +5,7 @@ import { generatePassword } from '../utils/password'
 import { buildNmapCommand, type NmapCommandOptions } from '../utils/nmap'
 import { buildIperf3Command, defaultIperf3Options } from '../utils/iperf3'
 import { buildTcpdumpCommand, defaultTcpdumpOptions } from '../utils/tcpdump'
-import { minifyJson, parseJson, stringifyJson } from '../utils/json'
+import { findJsonMatches, minifyJson, parseJson, stringifyJson } from '../utils/json'
 
 describe('IP utilities', () => {
   it('round trips IPv4 addresses', () => {
@@ -221,5 +221,29 @@ describe('JSON formatting and validation', () => {
   it('rejects comments and trailing commas as non-standard JSON', () => {
     expect(parseJson('{"a":1,}').ok).toBe(false)
     expect(parseJson('{/* note */"a":1}').ok).toBe(false)
+  })
+
+  it('searches tree keys and scalar values without matching parent containers', () => {
+    const value = {
+      project: 'LittleTools',
+      features: [
+        { name: 'JSON 格式化', enabled: true },
+        { name: '树形搜索', enabled: false },
+      ],
+    }
+    expect(findJsonMatches(value, 'name').map((match) => match.path)).toEqual([
+      '$.features[0].name',
+      '$.features[1].name',
+    ])
+    expect(findJsonMatches(value, '树形').map((match) => match.path)).toEqual(['$.features[1].name'])
+    expect(findJsonMatches(value, 'false').map((match) => match.path)).toEqual(['$.features[1].enabled'])
+  })
+
+  it('finds an exact JSONPath and ignores empty searches', () => {
+    const value = { items: [{ id: 1 }, { id: 2 }] }
+    expect(findJsonMatches(value, '$.items[1].id')).toEqual([
+      { path: '$.items[1].id', matchedBy: ['path'] },
+    ])
+    expect(findJsonMatches(value, '   ')).toEqual([])
   })
 })

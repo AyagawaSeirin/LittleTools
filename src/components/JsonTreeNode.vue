@@ -11,16 +11,43 @@ const props = defineProps<{
   path: string
   expansionMode: 'all' | 'none' | 'default'
   controlVersion: number
+  searchQuery: string
+  matchingPaths: string[]
+  activeMatchPath: string
 }>()
 
 const isArray = computed(() => Array.isArray(props.value))
 const isObject = computed(() => props.value !== null && typeof props.value === 'object' && !isArray.value)
 const isContainer = computed(() => isArray.value || isObject.value)
 const entries = computed(() => isContainer.value ? Object.entries(props.value as Record<string, unknown>) : [])
-const expanded = ref(props.expansionMode === 'all' || (props.expansionMode === 'default' && props.depth < 2))
+const isSearchMatch = computed(() => props.matchingPaths.includes(props.path))
+const isActiveMatch = computed(() => props.activeMatchPath === props.path)
+const containsSearchMatch = computed(() => props.matchingPaths.some((matchPath) => (
+  matchPath === props.path || matchPath.startsWith(`${props.path}.`) || matchPath.startsWith(`${props.path}[`)
+)))
+const containsActiveMatch = computed(() => Boolean(props.activeMatchPath) && (
+  props.activeMatchPath === props.path || props.activeMatchPath.startsWith(`${props.path}.`) || props.activeMatchPath.startsWith(`${props.path}[`)
+))
+
+function expansionForCurrentState() {
+  if (props.expansionMode === 'all') return true
+  if (props.searchQuery.trim() && containsSearchMatch.value) return true
+  return props.expansionMode === 'default' && props.depth < 2
+}
+
+const expanded = ref(expansionForCurrentState())
 
 watch(() => props.controlVersion, () => {
-  expanded.value = props.expansionMode === 'all' || (props.expansionMode === 'default' && props.depth < 2)
+  expanded.value = expansionForCurrentState()
+})
+
+watch([() => props.searchQuery, containsSearchMatch], ([query, hasMatch]) => {
+  if (query.trim() && hasMatch) expanded.value = true
+  else if (!query.trim()) expanded.value = expansionForCurrentState()
+})
+
+watch(() => props.activeMatchPath, () => {
+  if (containsActiveMatch.value) expanded.value = true
 })
 
 const opening = computed(() => isArray.value ? '[' : '{')
@@ -37,7 +64,14 @@ function childPath(key: string) {
 
 <template>
   <div class="json-node" :class="{ container: isContainer }">
-    <div class="json-node-row" :style="{ '--depth': depth }" :title="path">
+    <div
+      class="json-node-row"
+      :class="{ 'search-match': isSearchMatch, 'active-match': isActiveMatch }"
+      :style="{ '--depth': depth }"
+      :title="path"
+      :data-json-path="path"
+      :aria-current="isActiveMatch ? 'true' : undefined"
+    >
       <button v-if="isContainer" class="tree-toggle" :aria-label="expanded ? '收起节点' : '展开节点'" @click="expanded = !expanded">
         <CaretRightOutlined :class="{ expanded }" />
       </button>
@@ -64,6 +98,9 @@ function childPath(key: string) {
         :path="childPath(key)"
         :expansion-mode="expansionMode"
         :control-version="controlVersion"
+        :search-query="searchQuery"
+        :matching-paths="matchingPaths"
+        :active-match-path="activeMatchPath"
       />
       <div class="json-close-row" :style="{ '--depth': depth }"><code>{{ closing }}</code></div>
     </div>
@@ -73,6 +110,8 @@ function childPath(key: string) {
 <style scoped>
 .json-node-row, .json-close-row { display: flex; min-height: 29px; align-items: flex-start; padding-left: calc(var(--depth) * 20px); font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; line-height: 29px; }
 .json-node-row:hover { background: color-mix(in srgb, var(--primary-color) 5%, transparent); }
+.json-node-row.search-match { background: color-mix(in srgb, #d8a22d 17%, var(--panel-bg)); box-shadow: inset 3px 0 #d8a22d; }
+.json-node-row.active-match { background: color-mix(in srgb, var(--primary-color) 17%, var(--panel-bg)); box-shadow: inset 3px 0 var(--primary-color); }
 .tree-toggle, .tree-spacer { display: grid; flex: 0 0 22px; width: 22px; height: 29px; padding: 0; place-items: center; border: 0; background: transparent; color: var(--text-muted); font-size: 10px; }
 .tree-toggle { cursor: pointer; }
 .tree-toggle :deep(svg) { transition: transform .14s ease; }

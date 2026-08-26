@@ -4,6 +4,7 @@ import {
   CalendarOutlined,
   ClockCircleOutlined,
   CodeOutlined,
+  CodeSandboxOutlined,
   DashboardOutlined,
   DeploymentUnitOutlined,
   GlobalOutlined,
@@ -95,6 +96,15 @@ export const tools: ToolItem[] = [
     description: '转换 Base64、URL、Unicode、Hex 等编码',
     icon: CodeOutlined,
     color: '#496a94',
+  },
+  {
+    key: 'json',
+    path: '/json-formatter',
+    name: 'JSON 格式化与树形查看',
+    shortName: 'JSON 工具',
+    description: '格式化、压缩、校验并展开查看 JSON 数据',
+    icon: CodeSandboxOutlined,
+    color: '#4c6f8d',
   },
   {
     key: 'nmap',

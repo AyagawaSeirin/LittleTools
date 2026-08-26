@@ -5,6 +5,7 @@ import { generatePassword } from '../utils/password'
 import { buildNmapCommand, type NmapCommandOptions } from '../utils/nmap'
 import { buildIperf3Command, defaultIperf3Options } from '../utils/iperf3'
 import { buildTcpdumpCommand, defaultTcpdumpOptions } from '../utils/tcpdump'
+import { minifyJson, parseJson, stringifyJson } from '../utils/json'
 
 describe('IP utilities', () => {
   it('round trips IPv4 addresses', () => {
@@ -182,5 +183,43 @@ describe('tcpdump command generation', () => {
   it('rejects unsafe visual endpoints and multiline filters', () => {
     expect(() => buildTcpdumpCommand({ ...defaultTcpdumpOptions(), host: '10.0.0.1;id' })).toThrow('主机格式无效')
     expect(() => buildTcpdumpCommand({ ...defaultTcpdumpOptions(), filterSource: 'custom', customExpression: 'tcp\nport 80' })).toThrow('不能包含换行符')
+  })
+})
+
+describe('JSON formatting and validation', () => {
+  it('parses valid JSON and collects structural statistics', () => {
+    const result = parseJson('{"name":"LittleTools","items":[1,true,null]}')
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.stats.objects).toBe(1)
+      expect(result.stats.arrays).toBe(1)
+      expect(result.stats.nodes).toBe(6)
+      expect(result.stats.maxDepth).toBe(2)
+    }
+  })
+
+  it('formats and minifies parsed values', () => {
+    const result = parseJson('{"a":1,"b":[2,3]}')
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(stringifyJson(result.value, '2')).toContain('\n  "a": 1')
+      expect(minifyJson(result.value)).toBe('{"a":1,"b":[2,3]}')
+    }
+  })
+
+  it('reports the exact line and column for malformed JSON', () => {
+    const result = parseJson('{\n  "a": 1,\n  "b" 2\n}')
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.issue.line).toBe(3)
+      expect(result.issue.column).toBeGreaterThan(1)
+      expect(result.issue.message).toContain('冒号')
+      expect(result.issue.caret).toContain('^')
+    }
+  })
+
+  it('rejects comments and trailing commas as non-standard JSON', () => {
+    expect(parseJson('{"a":1,}').ok).toBe(false)
+    expect(parseJson('{/* note */"a":1}').ok).toBe(false)
   })
 })

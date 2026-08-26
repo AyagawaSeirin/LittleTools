@@ -31,7 +31,8 @@ export function rememberToolSettings(
         name,
         codecs[name]?.serialize?.(field.value) ?? field.value,
       ]))
-      localStorage.setItem(storageKey, JSON.stringify(state))
+      try { localStorage.setItem(storageKey, JSON.stringify(state)) }
+      catch { /* Keep the tool usable when browser storage quota is exhausted. */ }
     },
     { deep: true, flush: 'post' },
   )

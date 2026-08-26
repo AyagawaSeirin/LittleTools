@@ -14,6 +14,7 @@ const router = createRouter({
     { path: '/timestamp', component: () => import('../views/TimestampView.vue') },
     { path: '/ip-info', component: () => import('../views/IpInfoView.vue') },
     { path: '/text-encoding', component: () => import('../views/TextEncodingView.vue') },
+    { path: '/json-formatter', component: () => import('../views/JsonFormatterView.vue') },
     { path: '/nmap-generator', component: () => import('../views/NmapGeneratorView.vue') },
     { path: '/iperf3-generator', component: () => import('../views/Iperf3GeneratorView.vue') },
     { path: '/tcpdump-generator', component: () => import('../views/TcpdumpGeneratorView.vue') },

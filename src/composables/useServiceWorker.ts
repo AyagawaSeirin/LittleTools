@@ -121,7 +121,7 @@ export function useServiceWorker() {
     cacheButtonTitle: computed(() => {
       if (isOffline.value) return '当前处于离线模式，已缓存的工具仍可使用'
       if (updateAvailable.value) return '发现网站新版本，点击更新本地缓存'
-      return '检查网站更新并重新缓存全部工具资源'
+      return '检查网站更新并重新缓存核心工具资源'
     }),
     refreshCache,
   }

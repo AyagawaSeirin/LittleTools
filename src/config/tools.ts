@@ -7,6 +7,7 @@ import {
   CodeSandboxOutlined,
   DashboardOutlined,
   DeploymentUnitOutlined,
+  EnvironmentOutlined,
   GlobalOutlined,
   InfoCircleOutlined,
   KeyOutlined,
@@ -105,6 +106,15 @@ export const tools: ToolItem[] = [
     description: '格式化、压缩、校验并展开查看 JSON 数据',
     icon: CodeSandboxOutlined,
     color: '#4c6f8d',
+  },
+  {
+    key: 'address',
+    path: '/address-generator',
+    name: '多国地址生成器',
+    shortName: '多国地址',
+    description: '生成符合各国格式的虚构地址与测试资料',
+    icon: EnvironmentOutlined,
+    color: '#49725f',
   },
   {
     key: 'nmap',

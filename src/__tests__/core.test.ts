@@ -6,6 +6,14 @@ import { buildNmapCommand, type NmapCommandOptions } from '../utils/nmap'
 import { buildIperf3Command, defaultIperf3Options } from '../utils/iperf3'
 import { buildTcpdumpCommand, defaultTcpdumpOptions } from '../utils/tcpdump'
 import { findJsonMatches, minifyJson, parseJson, stringifyJson } from '../utils/json'
+import {
+  addressCountries,
+  addressProfilesToCsv,
+  generateAddressProfiles,
+  isValidAddressPostalCode,
+  validateAddressPack,
+  type AddressDataPack,
+} from '../utils/address'
 
 describe('IP utilities', () => {
   it('round trips IPv4 addresses', () => {
@@ -245,5 +253,64 @@ describe('JSON formatting and validation', () => {
       { path: '$.items[1].id', matchedBy: ['path'] },
     ])
     expect(findJsonMatches(value, '   ')).toEqual([])
+  })
+})
+
+const addressPack: AddressDataPack = {
+  male: ['James'],
+  female: ['Emma'],
+  last: ['Smith'],
+  streets: ['Maple'],
+  suffixes: ['Street'],
+  companies: ['Northstar Labs'],
+  locations: [
+    { region: 'California', regionCode: 'CA', city: 'San Francisco', district: 'SoMa', postalCode: '94105' },
+    { region: 'Texas', regionCode: 'TX', city: 'Austin', district: 'Downtown', postalCode: '78701' },
+  ],
+}
+
+describe('multi-country address generation', () => {
+  it('defines 27 lightweight country configurations', () => {
+    expect(addressCountries).toHaveLength(27)
+    expect(new Set(addressCountries.map((country) => country.code)).size).toBe(27)
+  })
+
+  it('validates address packs and country-specific postal formats', () => {
+    expect(validateAddressPack(addressPack)).toBe(true)
+    expect(validateAddressPack({ ...addressPack, locations: [] })).toBe(false)
+    expect(isValidAddressPostalCode('US', '94105')).toBe(true)
+    expect(isValidAddressPostalCode('CA', 'M5V 2T6')).toBe(true)
+    expect(isValidAddressPostalCode('JP', '100-0005')).toBe(true)
+    expect(isValidAddressPostalCode('BR', '01310-100')).toBe(true)
+    expect(isValidAddressPostalCode('US', 'M5V 2T6')).toBe(false)
+  })
+
+  it('generates reproducible and internally correlated test profiles', () => {
+    const country = addressCountries.find((item) => item.code === 'US')!
+    const options = { gender: 'female' as const, ageRange: '26-35' as const, region: 'California', city: 'San Francisco', count: 2, seed: 'qa-seed' }
+    const now = new Date('2026-09-04T12:00:00Z')
+    const first = generateAddressProfiles(country, addressPack, options, now)
+    const second = generateAddressProfiles(country, addressPack, options, now)
+    expect(first).toEqual(second)
+    expect(first).toHaveLength(2)
+    first.forEach((profile) => {
+      expect(profile.basic.gender).toBe('女')
+      expect(profile.basic.age).toBeGreaterThanOrEqual(26)
+      expect(profile.basic.age).toBeLessThanOrEqual(35)
+      expect(profile.address.region).toBe('California')
+      expect(profile.address.city).toBe('San Francisco')
+      expect(profile.address.postalCode).toBe('94105')
+      expect(profile.contact.testEmail).toMatch(/@example\.test$/)
+      expect(profile.financial.testOnly).toBe(true)
+    })
+  })
+
+  it('exports spreadsheet-safe CSV with a UTF-8 marker', () => {
+    const country = addressCountries.find((item) => item.code === 'US')!
+    const profiles = generateAddressProfiles(country, addressPack, { gender: 'any', ageRange: 'any', count: 1, seed: 'csv' }, new Date('2026-09-04T12:00:00Z'))
+    const csv = addressProfilesToCsv(profiles)
+    expect(csv.startsWith('\uFEFF')).toBe(true)
+    expect(csv).toContain('"完整地址"')
+    expect(csv).toContain('"California"')
   })
 })

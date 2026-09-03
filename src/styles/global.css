@@ -46,6 +46,13 @@ button, input, textarea { font: inherit; }
   border-right: 1px solid var(--line);
 }
 
+.app-sider .ant-layout-sider-children {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -75,6 +82,9 @@ button, input, textarea { font: inherit; }
 .brand small { margin-top: 2px; color: var(--text-muted); font-size: 11px; }
 
 .side-menu {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
   border-inline-end: 0 !important;
   padding: 6px 12px;
   background: transparent !important;
@@ -87,12 +97,11 @@ button, input, textarea { font: inherit; }
 }
 
 .sider-foot {
-  position: absolute;
-  bottom: 20px;
-  left: 24px;
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 8px;
+  margin: 10px 24px 18px;
   color: var(--text-muted);
   font-size: 12px;
 }

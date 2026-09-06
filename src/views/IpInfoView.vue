@@ -178,7 +178,7 @@ onMounted(lookup)
 </script>
 
 <template>
-  <ToolPageHeader title="IP 信息查询" description="查询公网 IP 的大致归属位置、网络组织与时区" :icon="InfoCircleOutlined" color="#447052" />
+  <ToolPageHeader title="IP 信息查询" description="查询公网 IP 的大致归属位置、网络组织与时区" :icon="InfoCircleOutlined" />
   <ToolCard title="查询 IP" description="打开页面会自动查询当前出口 IP；也可以输入任意公网地址。">
     <div class="lookup-row"><a-input v-model:value="query" class="mono" size="large" placeholder="IPv4 / IPv6，留空查询当前 IP" allow-clear @press-enter="lookup"><template #prefix><SearchOutlined /></template></a-input><a-button type="primary" size="large" :loading="loading" @click="lookup">开始查询</a-button><a-button size="large" :disabled="loading" @click="lookupCurrent">查询我的 IP</a-button></div>
     <a-alert v-if="error" type="error" show-icon :message="error" style="margin-top: 16px" />
@@ -202,9 +202,10 @@ onMounted(lookup)
 </template>
 
 <style scoped>
-.lookup-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; }
+.lookup-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; }
 .ip-identity { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
-.flag { font-size: 38px; }
+.ip-identity > div { min-width: 0; }
+.flag { flex: 0 0 auto; font-size: 38px; }
 .ip-identity span { color: var(--text-muted); font-size: 11px; }
 .ip-identity h2 { margin: 2px 0; font-family: monospace; font-size: 22px; overflow-wrap: anywhere; }
 .ip-identity p { margin: 0; color: var(--text-muted); font-size: 13px; }
@@ -212,6 +213,6 @@ onMounted(lookup)
 .info-grid > div { min-width: 0; padding: 14px 16px; background: var(--panel-subtle); }
 .info-grid span { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 11px; }
 .info-grid strong { display: block; overflow-wrap: anywhere; color: var(--text-main); font-size: 13px; }
-.map-link { display: inline-flex; align-items: center; gap: 7px; margin-top: 16px; color: var(--primary-color); font-size: 12px; }
-@media (max-width: 640px) { .lookup-row { grid-template-columns: 1fr; } .info-grid { grid-template-columns: 1fr; } }
+.map-link { display: inline-flex; align-items: baseline; gap: 7px; margin-top: 16px; color: var(--accent-text); font-size: 12px; }
+@container (max-width: 480px) { .lookup-row { grid-template-columns: minmax(0, 1fr); } .info-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>

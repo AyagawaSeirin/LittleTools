@@ -68,12 +68,12 @@ function swapDates() {
 </script>
 
 <template>
-  <ToolPageHeader title="日期计算器" description="计算日期间隔，或从指定日期向前、向后推算" :icon="CalendarOutlined" color="#316b9b" />
+  <ToolPageHeader title="日期计算器" description="计算日期间隔，或从指定日期向前、向后推算" :icon="CalendarOutlined" />
   <ToolCard title="两个日期相差多久" description="自然日按两个日期零点计算，起始当天不重复计入。">
     <div class="date-pair">
-      <div class="form-field"><span class="field-label">开始日期</span><a-date-picker v-model:value="startDate" format="YYYY年 M月 D日" /></div>
+      <div class="form-field"><span class="field-label">开始日期</span><a-date-picker v-model:value="startDate" :allow-clear="false" format="YYYY年 M月 D日" /></div>
       <a-button class="swap-button" shape="circle" aria-label="交换日期" @click="swapDates"><SwapOutlined /></a-button>
-      <div class="form-field"><span class="field-label">结束日期</span><a-date-picker v-model:value="endDate" format="YYYY年 M月 D日" /></div>
+      <div class="form-field"><span class="field-label">结束日期</span><a-date-picker v-model:value="endDate" :allow-clear="false" format="YYYY年 M月 D日" /></div>
     </div>
     <div class="date-result">
       <div><span>相差自然日</span><strong>{{ calendarDays }}</strong><small>天</small></div>
@@ -84,7 +84,7 @@ function swapDates() {
 
   <ToolCard title="推算几天后的日期" description="工作日计算仅排除周六与周日，不包含法定节假日。">
     <div class="form-grid three">
-      <div class="form-field"><span class="field-label">基准日期</span><a-date-picker v-model:value="baseDate" format="YYYY年 M月 D日" style="width: 100%" /></div>
+      <div class="form-field"><span class="field-label">基准日期</span><a-date-picker v-model:value="baseDate" :allow-clear="false" format="YYYY年 M月 D日" style="width: 100%" /></div>
       <div class="form-field"><span class="field-label">方向与数量</span><a-input-group compact><a-select v-model:value="direction" style="width: 38%"><a-select-option value="add">往后</a-select-option><a-select-option value="subtract">往前</a-select-option></a-select><a-input-number v-model:value="amount" :min="0" :max="100000" style="width: 62%" /></a-input-group></div>
       <div class="form-field"><span class="field-label">单位</span><a-select v-model:value="unit" style="width: 100%"><a-select-option value="day">天</a-select-option><a-select-option value="week">周</a-select-option><a-select-option value="month">个月</a-select-option><a-select-option value="year">年</a-select-option></a-select></div>
       <div class="form-field full"><a-checkbox v-model:checked="workdaysOnly" :disabled="unit !== 'day'">只计算工作日（周一至周五）</a-checkbox></div>
@@ -104,11 +104,11 @@ function swapDates() {
 .date-result { display: grid; grid-template-columns: 1.2fr 1fr 1fr; margin-top: 22px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--line); gap: 1px; }
 .date-result > div { min-height: 105px; padding: 17px; background: var(--panel-subtle); }
 .date-result span { display: block; color: var(--text-muted); font-size: 12px; }
-.date-result strong { display: inline-block; margin-top: 7px; color: var(--primary-color); font-size: 36px; line-height: 1; }
+.date-result strong { display: inline-block; margin-top: 7px; color: var(--accent-text); font-size: 36px; line-height: 1; }
 .date-result small { margin-left: 6px; color: var(--text-muted); }
 .date-result b { display: block; margin-top: 15px; color: var(--text-main); font-size: 16px; }
-.calculated-date { display: flex; align-items: baseline; gap: 12px; margin-top: 22px; padding: 20px; border-radius: 10px; background: color-mix(in srgb, var(--primary-color) 8%, var(--panel-subtle)); }
+.calculated-date { display: flex; align-items: baseline; gap: 12px; margin-top: 22px; padding: 20px; border-radius: 10px; background: var(--panel-subtle); }
 .calculated-date span, .calculated-date small { color: var(--text-muted); font-size: 12px; }
-.calculated-date strong { color: var(--primary-color); font-size: 24px; }
-@media (max-width: 640px) { .date-pair { grid-template-columns: 1fr; } .swap-button { justify-self: center; transform: rotate(90deg); } .date-result { grid-template-columns: 1fr; } .calculated-date { flex-wrap: wrap; } .calculated-date strong { flex-basis: 100%; } }
+.calculated-date strong { color: var(--accent-text); font-size: 24px; }
+@container (max-width: 520px) { .date-pair { grid-template-columns: 1fr; } .swap-button { justify-self: center; transform: rotate(90deg); } .date-result { grid-template-columns: 1fr; } .calculated-date { flex-wrap: wrap; } .calculated-date strong { flex-basis: 100%; } }
 </style>

@@ -39,7 +39,7 @@ convert()
 </script>
 
 <template>
-  <ToolPageHeader title="文本编码转换" description="在常见的文本与字节编码之间进行本地转换" :icon="CodeOutlined" color="#496a94" />
+  <ToolPageHeader title="文本编码转换" description="在常见的文本与字节编码之间进行本地转换" :icon="CodeOutlined" />
   <ToolCard title="转换设置">
     <div class="encoding-toolbar">
       <a-segmented v-model:value="mode" :options="[{ label: '编码', value: 'encode' }, { label: '解码', value: 'decode' }]" />
@@ -70,5 +70,5 @@ convert()
 .pane-head small { color: var(--text-muted); font-weight: 400; }
 .text-pane :deep(textarea) { resize: vertical; font-family: "SFMono-Regular", Consolas, monospace; line-height: 1.6; }
 .output-pane :deep(textarea) { background: var(--panel-subtle); }
-@media (max-width: 760px) { .encoding-panes { grid-template-columns: 1fr; } .encoding-toolbar > * { flex: 1 1 auto; } }
+@container (max-width: 620px) { .encoding-panes { grid-template-columns: 1fr; } .encoding-toolbar > * { flex: 1 1 auto; } }
 </style>

@@ -5,14 +5,13 @@ defineProps<{
   title: string
   description: string
   icon: Component
-  color?: string
 }>()
 </script>
 
 <template>
   <header class="tool-page-header">
     <div class="tool-page-title-row">
-      <span class="tool-page-icon" :style="{ '--tool-color': color || 'var(--primary-color)' }">
+      <span class="tool-page-icon" aria-hidden="true">
         <component :is="icon" />
       </span>
       <div>

@@ -15,6 +15,7 @@ import {
 import { tools, findTool } from './config/tools'
 import { useTheme } from './composables/useTheme'
 import { useServiceWorker } from './composables/useServiceWorker'
+import { contrastingText } from './utils/color'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,15 +32,20 @@ const menuItems = computed(() => [
   { type: 'divider' as const },
   ...tools.map((tool) => ({ key: tool.path, label: tool.shortName, icon: () => h(tool.icon) })),
 ])
-const themeConfig = computed(() => ({
-  algorithm: isDark.value ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-  token: {
-    colorPrimary: primaryColor.value,
-    borderRadius: 8,
-    fontFamily: "Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    colorBgLayout: isDark.value ? '#111513' : '#f3f5f2',
-  },
-}))
+const themeConfig = computed(() => {
+  const algorithm = isDark.value ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm
+  const palette = algorithm({ ...antdTheme.defaultSeed, colorPrimary: primaryColor.value })
+  return {
+    algorithm,
+    token: {
+      colorPrimary: primaryColor.value,
+      colorTextLightSolid: contrastingText(palette.colorPrimary),
+      borderRadius: 8,
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif",
+      colorBgLayout: isDark.value ? '#111513' : '#f3f5f2',
+    },
+  }
+})
 
 function navigate({ key }: { key: string }) {
   router.push(key)
@@ -61,12 +67,11 @@ function navigate({ key }: { key: string }) {
           </router-link>
           <a-menu class="side-menu" mode="inline" :items="menuItems" :selected-keys="selectedKeys" @click="navigate" />
           <div class="sider-foot">
-            <span class="privacy-dot" />
             <span>本地优先处理</span>
           </div>
         </a-layout-sider>
 
-        <a-drawer v-model:open="drawerOpen" placement="left" :width="286" :closable="false" class="mobile-drawer">
+        <a-drawer v-model:open="drawerOpen" placement="left" :width="286" title="工具导航" class="mobile-drawer">
           <router-link to="/" class="brand drawer-brand" @click="drawerOpen = false">
             <span class="brand-mark"><ToolOutlined /></span>
             <span><strong>LittleTools</strong><small>轻量浏览器工具箱</small></span>
@@ -87,7 +92,7 @@ function navigate({ key }: { key: string }) {
               </div>
             </div>
             <div class="topbar-actions">
-              <a-tag v-if="isOffline" class="offline-tag"><DisconnectOutlined /> <span>离线模式</span></a-tag>
+              <a-tag v-if="isOffline" class="offline-tag" role="status" aria-label="离线模式"><DisconnectOutlined /> <span>离线模式</span></a-tag>
               <a-tooltip v-if="cacheAvailable" :title="cacheButtonTitle">
                 <a-button class="cache-button" type="text" :loading="isUpdating" :disabled="isOffline" aria-label="更新本地缓存" @click="refreshCache">
                   <template #icon><CloudSyncOutlined /></template>
@@ -107,11 +112,12 @@ function navigate({ key }: { key: string }) {
                         :class="{ active: primaryColor === color }"
                         :style="{ background: color }"
                         :aria-label="`选择主题色 ${color}`"
+                        :aria-pressed="primaryColor === color"
                         @click="primaryColor = color"
                       />
                       <label class="custom-color" title="自定义主题色">
                         <BgColorsOutlined />
-                        <input v-model="primaryColor" type="color" />
+                        <input v-model="primaryColor" type="color" aria-label="选择自定义颜色" />
                       </label>
                     </div>
                   </div>

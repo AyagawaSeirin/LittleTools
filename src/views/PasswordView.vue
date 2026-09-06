@@ -44,7 +44,7 @@ generate()
 </script>
 
 <template>
-  <ToolPageHeader title="随机密码生成" description="使用 Web Crypto 安全随机源，密码只在当前浏览器内生成" :icon="KeyOutlined" color="#9b5c31" />
+  <ToolPageHeader title="随机密码生成" description="使用 Web Crypto 安全随机源，密码只在当前浏览器内生成" :icon="KeyOutlined" />
   <ToolCard title="生成设置" description="至少选择一种字符类型；生成结果不会上传或保存到服务器。">
     <div class="form-grid">
       <div class="form-field full">
@@ -77,7 +77,7 @@ generate()
     </div>
     <ResultPanel :value="results.join('\n')" empty-text="设置条件后生成密码" :label="results.length > 1 ? `生成结果 · ${results.length} 个` : '生成结果'" />
     <div class="strength-row">
-      <div><span>强度：<b :style="{ color: strength.color }">{{ strength.label }}</b></span><small>估算熵 {{ entropy }} bits</small></div>
+      <div><span>强度：<b>{{ strength.label }}</b></span><small>估算熵 {{ entropy }} bits</small></div>
       <a-progress :percent="strength.percent" :show-info="false" :stroke-color="strength.color" />
     </div>
   </ToolCard>

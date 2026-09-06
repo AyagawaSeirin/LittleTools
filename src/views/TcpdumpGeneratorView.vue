@@ -41,7 +41,7 @@ function applyPreset(preset: 'http' | 'dns' | 'syn' | 'pcap' | 'read' | 'interfa
 </script>
 
 <template>
-  <ToolPageHeader title="tcpdump 命令生成器" description="可视化配置网络捕获、pcap 分析与 BPF 过滤条件，页面只生成命令" :icon="BugOutlined" color="#8a5f3a" />
+  <ToolPageHeader title="tcpdump 命令生成器" description="可视化配置网络捕获、pcap 分析与 BPF 过滤条件，页面只生成命令" :icon="BugOutlined" />
 
   <div class="tcpdump-layout">
     <div class="tcpdump-main">
@@ -203,29 +203,30 @@ function applyPreset(preset: 'http' | 'dns' | 'syn' | 'pcap' | 'read' | 'interfa
 </template>
 
 <style scoped>
-.tcpdump-layout { display: grid; grid-template-columns: minmax(0, 1fr) 370px; align-items: start; gap: 18px; }
+.tcpdump-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; gap: 18px; }
 .tcpdump-main { min-width: 0; }
 .tcpdump-aside { position: sticky; top: 82px; min-width: 0; }
 .preset-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
-.preset-grid button { min-height: 72px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-subtle); color: var(--text-main); text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease; }
-.preset-grid button:hover { border-color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 7%, var(--panel-subtle)); }
+.preset-grid button { min-height: 72px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-subtle); color: var(--text-main); text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease; }
+.preset-grid button:hover { border-color: var(--accent-text); background: color-mix(in srgb, var(--primary-color) 7%, var(--panel-subtle)); }
 .preset-grid strong, .preset-grid span { display: block; }
 .preset-grid strong { margin-bottom: 5px; font-size: 13px; }
 .preset-grid span { color: var(--text-muted); font-size: 11px; line-height: 1.45; }
 .filter-source { margin-bottom: 20px; }
 .filter-preview { display: flex; align-items: flex-start; gap: 12px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-subtle); }
 .filter-preview span { flex: 0 0 auto; color: var(--text-muted); font-size: 11px; }
-.filter-preview code { overflow-wrap: anywhere; color: var(--primary-color); font-size: 12px; }
+.filter-preview code { overflow-wrap: anywhere; color: var(--accent-text); font-size: 12px; }
 .option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .tcpdump-aside :deep(.result-panel) { margin-top: 0; }
 .tcpdump-aside :deep(.result-panel pre) { min-height: 140px; }
-.command-summary { margin-top: 14px; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; }
-.command-summary > div { display: flex; justify-content: space-between; gap: 14px; padding: 9px 11px; border-bottom: 1px solid var(--line); font-size: 11px; }
+.command-summary { margin-top: 18px; }
+.command-summary > div { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 11px; }
 .command-summary > div:last-child { border-bottom: 0; }
 .command-summary span { flex: 0 0 auto; color: var(--text-muted); }
-.command-summary strong { overflow-wrap: anywhere; color: var(--text-main); text-align: right; }
+.command-summary strong { min-width: 0; overflow-wrap: anywhere; color: var(--text-main); text-align: right; }
 .privilege-note, .responsible-note { display: flex; align-items: flex-start; gap: 7px; margin-top: 14px; color: var(--text-muted); font-size: 11px; line-height: 1.6; }
-@media (max-width: 1100px) { .tcpdump-layout { grid-template-columns: 1fr; } .tcpdump-aside { position: static; grid-row: 1; } }
-@media (max-width: 640px) { .preset-grid, .option-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 420px) { .preset-grid, .option-grid { grid-template-columns: 1fr; } }
+@container (max-width: 1000px) { .tcpdump-layout { grid-template-columns: minmax(0, 1fr); } .tcpdump-aside { position: static; grid-row: 1; } }
+@container (max-width: 520px) { .preset-grid, .option-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (max-width: 340px) { .preset-grid, .option-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-height: 650px) { .tcpdump-aside { position: static; } }
 </style>

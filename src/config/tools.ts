@@ -22,7 +22,6 @@ export interface ToolItem {
   shortName: string
   description: string
   icon: Component
-  color: string
 }
 
 export const tools: ToolItem[] = [
@@ -33,7 +32,6 @@ export const tools: ToolItem[] = [
     shortName: '密码生成',
     description: '使用浏览器加密随机源生成高强度密码',
     icon: KeyOutlined,
-    color: '#9b5c31',
   },
   {
     key: 'date',
@@ -42,7 +40,6 @@ export const tools: ToolItem[] = [
     shortName: '日期计算',
     description: '计算日期间隔、推算日期与工作日',
     icon: CalendarOutlined,
-    color: '#316b9b',
   },
   {
     key: 'port',
@@ -51,7 +48,6 @@ export const tools: ToolItem[] = [
     shortName: '随机端口',
     description: '在合法范围内批量生成不重复端口',
     icon: NumberOutlined,
-    color: '#75602b',
   },
   {
     key: 'random-ip',
@@ -60,7 +56,6 @@ export const tools: ToolItem[] = [
     shortName: '随机 IP',
     description: '按类型、网段或起止范围生成随机地址',
     icon: GlobalOutlined,
-    color: '#2d7763',
   },
   {
     key: 'cidr',
@@ -69,7 +64,6 @@ export const tools: ToolItem[] = [
     shortName: 'IP 范围',
     description: '解析 IPv4 / IPv6 子网、掩码与地址范围',
     icon: DeploymentUnitOutlined,
-    color: '#6a56a3',
   },
   {
     key: 'timestamp',
@@ -78,7 +72,6 @@ export const tools: ToolItem[] = [
     shortName: '时间戳',
     description: '在 Unix 时间戳与日期时间之间快速转换',
     icon: ClockCircleOutlined,
-    color: '#a24f59',
   },
   {
     key: 'ip-info',
@@ -87,7 +80,6 @@ export const tools: ToolItem[] = [
     shortName: 'IP 查询',
     description: '查询 IP 归属地、网络组织与时区信息',
     icon: InfoCircleOutlined,
-    color: '#447052',
   },
   {
     key: 'encoding',
@@ -96,7 +88,6 @@ export const tools: ToolItem[] = [
     shortName: '文本编码',
     description: '转换 Base64、URL、Unicode、Hex 等编码',
     icon: CodeOutlined,
-    color: '#496a94',
   },
   {
     key: 'json',
@@ -105,7 +96,6 @@ export const tools: ToolItem[] = [
     shortName: 'JSON 工具',
     description: '格式化、压缩、校验并展开查看 JSON 数据',
     icon: CodeSandboxOutlined,
-    color: '#4c6f8d',
   },
   {
     key: 'address',
@@ -114,7 +104,6 @@ export const tools: ToolItem[] = [
     shortName: '多国地址',
     description: '生成符合各国格式的虚构地址与测试资料',
     icon: EnvironmentOutlined,
-    color: '#49725f',
   },
   {
     key: 'nmap',
@@ -123,7 +112,6 @@ export const tools: ToolItem[] = [
     shortName: 'Nmap 命令',
     description: '可视化配置目标、扫描方式与输出参数',
     icon: RadarChartOutlined,
-    color: '#77548f',
   },
   {
     key: 'iperf3',
@@ -132,7 +120,6 @@ export const tools: ToolItem[] = [
     shortName: 'iperf3 命令',
     description: '可视化生成 TCP、UDP 与 SCTP 性能测试命令',
     icon: DashboardOutlined,
-    color: '#39728a',
   },
   {
     key: 'tcpdump',
@@ -141,7 +128,6 @@ export const tools: ToolItem[] = [
     shortName: 'tcpdump 命令',
     description: '可视化生成抓包、pcap 分析与 BPF 过滤命令',
     icon: BugOutlined,
-    color: '#8a5f3a',
   },
 ]
 

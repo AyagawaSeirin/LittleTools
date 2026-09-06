@@ -149,7 +149,7 @@ function loadExample() {
 </script>
 
 <template>
-  <ToolPageHeader title="JSON 格式化与树形查看" description="本地格式化、压缩和校验 JSON，并以可展开的树形结构浏览" :icon="CodeSandboxOutlined" color="#4c6f8d" />
+  <ToolPageHeader title="JSON 格式化与树形查看" description="本地格式化、压缩和校验 JSON，并以可展开的树形结构浏览" :icon="CodeSandboxOutlined" />
 
   <ToolCard class="json-workbench">
     <div class="json-toolbar">
@@ -251,38 +251,38 @@ function loadExample() {
 .json-panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 650px; }
 .editor-pane, .tree-pane { min-width: 0; }
 .editor-pane { border-right: 1px solid var(--line); }
-.pane-heading { display: flex; min-height: 58px; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel-subtle); }
+.pane-heading { display: flex; flex-wrap: wrap; min-height: 58px; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel-subtle); }
 .pane-heading > div:first-child { display: flex; flex-direction: column; }
 .pane-heading strong { color: var(--text-main); font-size: 13px; }
-.pane-heading span { margin-top: 3px; color: var(--text-muted); font-size: 10px; }
+.pane-heading span { margin-top: 3px; color: var(--text-muted); font-size: 12px; }
 .valid-mark, .error-mark { flex: 0 0 auto; }
-.valid-mark { color: #397755 !important; font-size: 11px !important; }
-.error-mark { padding: 4px 7px; border: 0; border-radius: 5px; background: color-mix(in srgb, #b74e4e 10%, transparent); color: #b74e4e; font-size: 10px; cursor: pointer; }
+.valid-mark { color: var(--text-muted) !important; font-size: 12px !important; }
+.error-mark { padding: 4px 7px; border: 0; border-radius: 5px; background: var(--panel-bg); color: var(--error-text); font-size: 12px; cursor: pointer; }
 .json-editor :deep(textarea) { min-height: 590px !important; padding: 15px; resize: vertical; border: 0; border-radius: 0; box-shadow: none !important; font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; line-height: 1.65; tab-size: 2; }
-.json-editor.invalid :deep(textarea) { background: color-mix(in srgb, #b74e4e 2.5%, var(--panel-bg)); }
-.json-error-panel { margin: 0 14px 14px; padding: 13px; border: 1px solid color-mix(in srgb, #b74e4e 25%, var(--line)); border-radius: 8px; background: color-mix(in srgb, #b74e4e 6%, var(--panel-bg)); }
-.error-title { display: flex; justify-content: space-between; gap: 12px; }
-.error-title strong { color: #b74e4e; font-size: 12px; }
-.error-title button { padding: 0; border: 0; background: transparent; color: var(--primary-color); font-size: 11px; cursor: pointer; }
-.json-error-panel > span { display: block; margin-top: 4px; color: var(--text-muted); font-size: 10px; }
-.json-error-panel pre { margin: 10px 0 0; padding: 9px 10px; overflow: auto; border-radius: 6px; background: var(--panel-subtle); font-size: 11px; line-height: 1.45; }
+.json-editor.invalid :deep(textarea) { background: var(--panel-bg); }
+.json-error-panel { margin: 0 14px 14px; padding: 13px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-bg); }
+.error-title { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.error-title strong { color: var(--error-text); font-size: 12px; }
+.error-title button { padding: 0; border: 0; background: transparent; color: var(--accent-text); font-size: 12px; cursor: pointer; }
+.json-error-panel > span { display: block; margin-top: 4px; color: var(--text-muted); font-size: 12px; }
+.json-error-panel pre { margin: 10px 0 0; padding: 9px 10px; overflow: auto; border-radius: 6px; background: var(--panel-subtle); font-size: 12px; line-height: 1.45; }
 .json-error-panel code { display: block; white-space: pre; }
-.json-error-panel .caret { color: #b74e4e; }
+.json-error-panel .caret { color: var(--error-text); }
 .tree-heading { flex-wrap: wrap; }
 .tree-actions { display: flex !important; flex-flow: row wrap !important; gap: 5px; }
-.tree-stats { display: flex; flex-wrap: wrap; gap: 1px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--line); }
-.tree-stats > span { display: flex; min-width: 72px; flex: 1 1 auto; align-items: baseline; justify-content: space-between; gap: 7px; margin: 0; padding: 7px 9px; background: var(--panel-bg); }
-.tree-stats small { color: var(--text-muted); font-size: 9px; }
-.tree-stats b { color: var(--text-main); font-family: monospace; font-size: 11px; }
-.tree-search-bar { display: grid; grid-template-columns: minmax(160px, 1fr) auto 28px 28px; align-items: center; gap: 6px; padding: 9px 14px; border-bottom: 1px solid var(--line); background: var(--panel-bg); }
+.tree-stats { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.tree-stats > span { display: flex; align-items: baseline; gap: 6px; }
+.tree-stats small { color: var(--text-muted); font-size: 12px; }
+.tree-stats b { color: var(--text-main); font-variant-numeric: tabular-nums; font-size: 12px; }
+.tree-search-bar { display: grid; grid-template-columns: minmax(0, 1fr) 28px 28px; align-items: center; gap: 6px; padding: 9px 14px; border-bottom: 1px solid var(--line); background: var(--panel-bg); }
 .tree-search-bar :deep(.ant-input-affix-wrapper) { min-width: 0; }
-.search-status { min-width: 92px; color: var(--text-muted); font-family: "SFMono-Regular", Consolas, monospace; font-size: 10px; text-align: right; white-space: nowrap; }
+.search-status { grid-column: 1 / -1; grid-row: 2; min-width: 0; color: var(--text-muted); font-variant-numeric: tabular-nums; font-size: 12px; text-align: left; white-space: normal; }
 .json-tree-wrap { min-height: 540px; max-height: 720px; padding: 10px 7px 20px; overflow: auto; background: var(--panel-bg); }
 .tree-empty { display: flex; min-height: 500px; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); text-align: center; }
 .tree-empty > :first-child { margin-bottom: 12px; font-size: 28px; }
 .tree-empty strong { color: var(--text-main); font-size: 13px; }
-.tree-empty span { margin-top: 5px; font-size: 11px; }
-.json-workbench > .notice { margin: 0 16px 16px; }
-@media (max-width: 980px) { .json-panes { grid-template-columns: 1fr; } .editor-pane { border-right: 0; border-bottom: 1px solid var(--line); } .json-editor :deep(textarea) { min-height: 420px !important; } .json-tree-wrap { min-height: 420px; } }
-@media (max-width: 640px) { .json-toolbar > .ant-btn { flex: 1 1 auto; } .toolbar-spacer { display: none; } .indent-select { width: 100%; } .pane-heading { align-items: flex-start; } .tree-actions { flex-basis: 100%; } .tree-search-bar { grid-template-columns: minmax(0, 1fr) 28px 28px; } .search-status { grid-column: 1 / -1; grid-row: 2; min-width: 0; text-align: left; } }
+.tree-empty span { margin-top: 5px; font-size: 12px; }
+.json-workbench > .notice { margin: 16px; }
+@container (max-width: 940px) { .json-panes { grid-template-columns: 1fr; } .editor-pane { border-right: 0; border-bottom: 1px solid var(--line); } .json-editor :deep(textarea) { min-height: 420px !important; } .json-tree-wrap { min-height: 420px; } }
+@container (max-width: 520px) { .json-toolbar > .ant-btn { flex: 1 1 auto; } .toolbar-spacer { display: none; } .indent-select { width: 100%; } .pane-heading { align-items: flex-start; } .tree-actions { flex-basis: 100%; } .tree-search-bar { grid-template-columns: minmax(0, 1fr) 28px 28px; } .search-status { grid-column: 1 / -1; grid-row: 2; min-width: 0; text-align: left; } }
 </style>

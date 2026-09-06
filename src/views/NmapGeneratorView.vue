@@ -120,7 +120,7 @@ function applyPreset(preset: 'quick' | 'service' | 'web' | 'inventory' | 'ping')
 </script>
 
 <template>
-  <ToolPageHeader title="Nmap 命令生成器" description="通过可视化参数生成可复制的 Nmap 命令，页面不会执行任何扫描" :icon="RadarChartOutlined" color="#77548f" />
+  <ToolPageHeader title="Nmap 命令生成器" description="通过可视化参数生成可复制的 Nmap 命令，页面不会执行任何扫描" :icon="RadarChartOutlined" />
 
   <div class="nmap-layout">
     <div class="nmap-main">
@@ -253,25 +253,27 @@ function applyPreset(preset: 'quick' | 'service' | 'web' | 'inventory' | 'ping')
 </template>
 
 <style scoped>
-.nmap-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: 18px; }
+.nmap-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; gap: 18px; }
 .nmap-main { min-width: 0; }
 .nmap-aside { position: sticky; top: 82px; min-width: 0; }
-.preset-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
-.preset-grid button { min-height: 78px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-subtle); color: var(--text-main); text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease; }
-.preset-grid button:hover { border-color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 7%, var(--panel-subtle)); }
+.preset-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.preset-grid button { min-height: 78px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-subtle); color: var(--text-main); text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease; }
+.preset-grid button:hover { border-color: var(--accent-text); background: color-mix(in srgb, var(--primary-color) 7%, var(--panel-subtle)); }
 .preset-grid strong, .preset-grid span { display: block; }
 .preset-grid strong { margin-bottom: 6px; font-size: 13px; }
 .preset-grid span { color: var(--text-muted); font-size: 11px; line-height: 1.45; }
 .option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .nmap-aside :deep(.result-panel) { margin-top: 0; }
 .nmap-aside :deep(.result-panel pre) { min-height: 112px; }
-.command-summary { margin-top: 14px; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; }
-.command-summary > div { display: flex; justify-content: space-between; gap: 16px; padding: 9px 11px; border-bottom: 1px solid var(--line); font-size: 11px; }
+.command-summary { margin-top: 18px; }
+.command-summary > div { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 11px; }
 .command-summary > div:last-child { border-bottom: 0; }
-.command-summary span { color: var(--text-muted); }
-.command-summary strong { overflow-wrap: anywhere; color: var(--text-main); text-align: right; }
+.command-summary span { flex: 0 0 auto; color: var(--text-muted); }
+.command-summary strong { min-width: 0; overflow-wrap: anywhere; color: var(--text-main); text-align: right; }
 .privilege-alert { margin-top: 14px; }
 .responsible-note { display: flex; align-items: flex-start; gap: 7px; margin-top: 14px; color: var(--text-muted); font-size: 11px; line-height: 1.6; }
-@media (max-width: 1080px) { .nmap-layout { grid-template-columns: 1fr; } .nmap-aside { position: static; grid-row: 1; } .preset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 640px) { .preset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .option-grid { grid-template-columns: 1fr; } }
+@container (max-width: 1000px) { .nmap-layout { grid-template-columns: minmax(0, 1fr); } .nmap-aside { position: static; grid-row: 1; } }
+@container (max-width: 520px) { .preset-grid, .option-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (max-width: 340px) { .preset-grid, .option-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-height: 650px) { .nmap-aside { position: static; } }
 </style>

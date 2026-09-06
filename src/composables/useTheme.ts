@@ -1,4 +1,5 @@
 import { computed, ref, watch } from 'vue'
+import { contrastingText, readableAccent } from '../utils/color'
 
 const DEFAULT_COLOR = '#276b63'
 const storedMode = localStorage.getItem('little-tools-mode')
@@ -15,6 +16,11 @@ watch(isDark, (value) => {
 watch(primaryColor, (value) => {
   localStorage.setItem('little-tools-color', value)
   document.documentElement.style.setProperty('--primary-color', value)
+  document.documentElement.style.setProperty('--primary-text', contrastingText(value))
+}, { immediate: true })
+
+watch([primaryColor, isDark], ([color, dark]) => {
+  document.documentElement.style.setProperty('--accent-text', readableAccent(color, Boolean(dark)))
 }, { immediate: true })
 
 export function useTheme() {

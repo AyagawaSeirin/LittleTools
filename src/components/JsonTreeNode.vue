@@ -72,14 +72,14 @@ function childPath(key: string) {
       :data-json-path="path"
       :aria-current="isActiveMatch ? 'true' : undefined"
     >
-      <button v-if="isContainer" class="tree-toggle" :aria-label="expanded ? '收起节点' : '展开节点'" @click="expanded = !expanded">
+      <button v-if="isContainer" class="tree-toggle" :aria-label="expanded ? '收起节点' : '展开节点'" :aria-expanded="expanded" @click="expanded = !expanded">
         <CaretRightOutlined :class="{ expanded }" />
       </button>
       <span v-else class="tree-spacer" />
-      <span v-if="nodeKey !== undefined" class="json-key">{{ isArray ? `[${nodeKey}]` : JSON.stringify(String(nodeKey)) }}</span>
+      <span v-if="nodeKey !== undefined" class="json-key">{{ typeof nodeKey === 'number' ? `[${nodeKey}]` : JSON.stringify(nodeKey) }}</span>
       <span v-if="nodeKey !== undefined" class="json-colon">:</span>
       <template v-if="isContainer">
-        <button class="container-label" @click="expanded = !expanded">
+        <button class="container-label" :aria-expanded="expanded" @click="expanded = !expanded">
           <code>{{ opening }}</code>
           <span>{{ countLabel }}</span>
           <code v-if="!expanded">{{ closing }}</code>
@@ -115,20 +115,20 @@ function childPath(key: string) {
 .tree-toggle, .tree-spacer { display: grid; flex: 0 0 22px; width: 22px; height: 29px; padding: 0; place-items: center; border: 0; background: transparent; color: var(--text-muted); font-size: 10px; }
 .tree-toggle { cursor: pointer; }
 .tree-toggle :deep(svg) { transition: transform .14s ease; }
-.tree-toggle :deep(.expanded svg), .tree-toggle .expanded { transform: rotate(90deg); }
-.json-key { color: #386f90; overflow-wrap: anywhere; }
-:global(:root[data-theme='dark']) .json-key { color: #7daec8; }
+.tree-toggle :deep(.expanded svg) { transform: rotate(90deg); }
+.json-key { min-width: 0; color: #386f90; overflow-wrap: anywhere; }
+:global(:root[data-theme='dark'] .json-key) { color: #7daec8; }
 .json-colon { margin: 0 6px 0 3px; color: var(--text-muted); }
-.container-label { display: inline-flex; height: 29px; align-items: center; gap: 7px; padding: 0; border: 0; background: transparent; color: var(--text-main); cursor: pointer; }
+.container-label { display: inline-flex; flex: 0 0 auto; height: 29px; align-items: center; gap: 7px; padding: 0; border: 0; background: transparent; color: var(--text-main); cursor: pointer; }
 .container-label span { color: var(--text-muted); font-family: inherit; font-size: 10px; }
-.json-value { max-width: min(100%, 900px); overflow-wrap: anywhere; white-space: pre-wrap; }
+.json-value { min-width: 0; max-width: min(100%, 900px); overflow-wrap: anywhere; white-space: pre-wrap; }
 .type-string { color: #51733d; }
 .type-number { color: #936025; }
 .type-boolean { color: #81518e; }
 .type-null { color: var(--text-muted); font-style: italic; }
-:global(:root[data-theme='dark']) .type-string { color: #8fbd73; }
-:global(:root[data-theme='dark']) .type-number { color: #d5a362; }
-:global(:root[data-theme='dark']) .type-boolean { color: #bd8dca; }
+:global(:root[data-theme='dark'] .type-string) { color: #8fbd73; }
+:global(:root[data-theme='dark'] .type-number) { color: #d5a362; }
+:global(:root[data-theme='dark'] .type-boolean) { color: #bd8dca; }
 .json-close-row { color: var(--text-main); }
 @media (max-width: 640px) { .json-node-row, .json-close-row { padding-left: calc(var(--depth) * 14px); } }
 </style>

@@ -45,7 +45,7 @@ generate()
 </script>
 
 <template>
-  <ToolPageHeader title="随机端口生成" description="在 TCP / UDP 合法端口范围 1–65535 内安全随机取值" :icon="NumberOutlined" color="#75602b" />
+  <ToolPageHeader title="随机端口生成" description="在 TCP / UDP 合法端口范围 1–65535 内安全随机取值" :icon="NumberOutlined" />
   <ToolCard title="生成设置" description="默认避开 1–1023 的系统知名端口。">
     <div class="form-grid three">
       <div class="form-field"><span class="field-label">起始端口</span><a-input-number v-model:value="minPort" :min="1" :max="65535" style="width: 100%" /></div>

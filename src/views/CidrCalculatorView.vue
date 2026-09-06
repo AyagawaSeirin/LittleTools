@@ -69,7 +69,7 @@ calculate()
 </script>
 
 <template>
-  <ToolPageHeader title="IP 范围计算器" description="解析 IPv4 / IPv6 地址的网络前缀、范围、掩码和反向记录" :icon="DeploymentUnitOutlined" color="#6a56a3" />
+  <ToolPageHeader title="IP 范围计算器" description="解析 IPv4 / IPv6 地址的网络前缀、范围、掩码和反向记录" :icon="DeploymentUnitOutlined" />
   <ToolCard title="输入网络地址" description="地址可以是网段中的任意主机，计算结果会自动归一到网络边界。">
     <div class="cidr-input-row">
       <div class="form-field"><span class="field-label">协议版本</span><a-segmented :value="version" :options="[{ label: 'IPv4', value: '4' }, { label: 'IPv6', value: '6' }]" block @change="switchVersion($event as '4' | '6')" /></div>
@@ -92,7 +92,7 @@ calculate()
 </template>
 
 <style scoped>
-.cidr-input-row { display: grid; grid-template-columns: 180px minmax(240px, 1fr) 150px; gap: 18px; }
+.cidr-input-row { display: grid; grid-template-columns: 140px minmax(0, 1fr) 120px; gap: 18px; }
 .cidr-results { overflow: hidden; border: 1px solid var(--line); border-radius: 10px; }
 .cidr-result-item { display: grid; grid-template-columns: 180px minmax(0, 1fr); min-height: 64px; border-bottom: 1px solid var(--line); }
 .cidr-result-item:last-child { border-bottom: 0; }
@@ -100,5 +100,5 @@ calculate()
 .cidr-result-item span { color: var(--text-main); font-size: 13px; font-weight: 600; }
 .cidr-result-item small { margin-top: 4px; color: var(--text-muted); font-size: 11px; }
 .cidr-result-item code { display: flex; align-items: center; min-width: 0; padding: 12px 16px; overflow-wrap: anywhere; color: var(--text-main); font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; }
-@media (max-width: 720px) { .cidr-input-row { grid-template-columns: 1fr; } .cidr-result-item { grid-template-columns: 1fr; } .cidr-result-item > div { border-bottom: 1px solid var(--line); } }
+@container (max-width: 600px) { .cidr-input-row { grid-template-columns: minmax(0, 1fr); } .cidr-result-item { grid-template-columns: minmax(0, 1fr); } .cidr-result-item > div { border-bottom: 1px solid var(--line); } }
 </style>

@@ -87,7 +87,7 @@ function download() {
 </script>
 
 <template>
-  <ToolPageHeader title="随机 IP 地址" description="按地址类型、CIDR 网段或起止范围批量生成" :icon="GlobalOutlined" color="#2d7763" />
+  <ToolPageHeader title="随机 IP 地址" description="按地址类型、CIDR 网段或起止范围批量生成" :icon="GlobalOutlined" />
   <ToolCard title="生成条件">
     <div class="form-grid">
       <div class="form-field"><span class="field-label">地址类型</span><a-segmented :value="version" :options="[{ label: 'IPv4', value: '4' }, { label: 'IPv6', value: '6' }]" block @change="setVersion($event as '4' | '6')" /></div>

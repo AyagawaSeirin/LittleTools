@@ -43,6 +43,8 @@ npm run build
 npm run preview
 ```
 
+全站响应式与浏览器交互复测方式见 [前端检查记录](docs/frontend-audit.md)。脚本支持外部已有的 Playwright 安装，不增加项目依赖。
+
 ## 部署到 GitHub Pages
 
 项目已包含 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)。将代码推送到 `main` 分支后：

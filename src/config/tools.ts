@@ -91,6 +91,14 @@ export const tools: ToolItem[] = [
     icon: EditOutlined,
   },
   {
+    key: 'regex',
+    path: '/regex-tester',
+    name: '正则表达式测试与编辑',
+    shortName: '正则表达式',
+    description: '双引擎实时匹配、语法解释、替换提取与测试集',
+    icon: CodeOutlined,
+  },
+  {
     key: 'encoding',
     path: '/text-encoding',
     name: '文本编码转换',

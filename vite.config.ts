@@ -117,5 +117,6 @@ self.addEventListener('fetch', (event) => {
 
 export default defineConfig({
   base: './',
+  worker: { format: 'es' },
   plugins: [vue(), offlineServiceWorker()],
 })

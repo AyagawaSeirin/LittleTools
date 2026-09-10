@@ -16,7 +16,7 @@ const themes = (process.env.QA_THEMES || 'light,dark').split(',')
 const screenshotWidths = [320, 768, 1440]
 const routerSource = await readFile(new URL('../src/router/index.ts', import.meta.url), 'utf8')
 const routes = [...routerSource.matchAll(/path: '(\/[^':]*)'/g)].map((match) => match[1])
-assert.equal(routes.length, 14, 'Update the audit coverage when adding routes')
+assert.equal(routes.length, 15, 'Update the audit coverage when adding routes')
 const report = { browser: browserName, baseUrl, widths, themes, checks: [], errors: [] }
 await mkdir(outputDir, { recursive: true })
 

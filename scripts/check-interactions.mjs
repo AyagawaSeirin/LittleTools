@@ -58,7 +58,7 @@ try {
         await page.goto(`${baseUrl}/#${route}`)
         await page.locator('h1').waitFor()
         if (route === '/') {
-          assert.equal(await page.locator('.tool-tile').count(), 13)
+          assert.equal(await page.locator('.tool-tile').count(), 14)
           await page.locator('.tool-tile').last().click()
           await page.waitForURL('**/#/tcpdump-generator')
           await page.getByRole('heading', { name: 'tcpdump 命令生成器', exact: true }).waitFor()

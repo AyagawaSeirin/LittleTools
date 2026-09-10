@@ -13,6 +13,7 @@ const router = createRouter({
     { path: '/cidr-calculator', component: () => import('../views/CidrCalculatorView.vue') },
     { path: '/timestamp', component: () => import('../views/TimestampView.vue') },
     { path: '/ip-info', component: () => import('../views/IpInfoView.vue') },
+    { path: '/text-editor', component: () => import('../views/TextEditorView.vue') },
     { path: '/text-encoding', component: () => import('../views/TextEncodingView.vue') },
     { path: '/json-formatter', component: () => import('../views/JsonFormatterView.vue') },
     { path: '/address-generator', component: () => import('../views/AddressGeneratorView.vue') },

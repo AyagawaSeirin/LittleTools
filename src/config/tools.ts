@@ -7,6 +7,7 @@ import {
   CodeSandboxOutlined,
   DashboardOutlined,
   DeploymentUnitOutlined,
+  EditOutlined,
   EnvironmentOutlined,
   GlobalOutlined,
   InfoCircleOutlined,
@@ -80,6 +81,14 @@ export const tools: ToolItem[] = [
     shortName: 'IP 查询',
     description: '查询 IP 归属地、网络组织与时区信息',
     icon: InfoCircleOutlined,
+  },
+  {
+    key: 'text-editor',
+    path: '/text-editor',
+    name: '在线文本编辑器',
+    shortName: '文本编辑',
+    description: '大文本编辑、正则搜索与替换，内容不保存',
+    icon: EditOutlined,
   },
   {
     key: 'encoding',

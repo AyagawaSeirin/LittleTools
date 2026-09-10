@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed, h, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { theme as antdTheme } from 'ant-design-vue'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import {
-  AppstoreOutlined,
   BgColorsOutlined,
   BulbOutlined,
   CloudSyncOutlined,
@@ -12,7 +11,9 @@ import {
   MenuOutlined,
   ToolOutlined,
 } from '@ant-design/icons-vue'
-import { tools, findTool } from './config/tools'
+import { findTool } from './config/tools'
+import ToolNavigation from './components/ToolNavigation.vue'
+import { useToolOrder } from './composables/useToolOrder'
 import { useTheme } from './composables/useTheme'
 import { useServiceWorker } from './composables/useServiceWorker'
 import { contrastingText } from './utils/color'
@@ -24,14 +25,10 @@ const colorOpen = ref(false)
 const { isDark, primaryColor, themeLabel, resetColor } = useTheme()
 const { isAvailable: cacheAvailable, isOffline, isUpdating, updateAvailable, cacheButtonText, cacheButtonTitle, refreshCache } = useServiceWorker()
 const colorPresets = ['#276b63', '#2463a7', '#7a4f9a', '#a44d58', '#a05d24', '#486b3d']
+const { storageFailed, orderAnnouncement } = useToolOrder()
 
 const selectedKeys = computed(() => [route.path])
 const currentTool = computed(() => findTool(route.path))
-const menuItems = computed(() => [
-  { key: '/', label: '工具首页', icon: () => h(AppstoreOutlined) },
-  { type: 'divider' as const },
-  ...tools.map((tool) => ({ key: tool.path, label: tool.shortName, icon: () => h(tool.icon) })),
-])
 const themeConfig = computed(() => {
   const algorithm = isDark.value ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm
   const palette = algorithm({ ...antdTheme.defaultSeed, colorPrimary: primaryColor.value })
@@ -65,7 +62,7 @@ function navigate({ key }: { key: string }) {
               <small>轻量浏览器工具箱</small>
             </span>
           </router-link>
-          <a-menu class="side-menu" mode="inline" :items="menuItems" :selected-keys="selectedKeys" @click="navigate" />
+          <ToolNavigation class="side-menu" :selected-keys="selectedKeys" @navigate="navigate" />
           <div class="sider-foot">
             <span>本地优先处理</span>
           </div>
@@ -76,7 +73,7 @@ function navigate({ key }: { key: string }) {
             <span class="brand-mark"><ToolOutlined /></span>
             <span><strong>LittleTools</strong><small>轻量浏览器工具箱</small></span>
           </router-link>
-          <a-menu mode="inline" :items="menuItems" :selected-keys="selectedKeys" @click="navigate" />
+          <ToolNavigation :selected-keys="selectedKeys" @navigate="navigate" />
         </a-drawer>
 
         <a-layout class="main-layout">
@@ -133,6 +130,8 @@ function navigate({ key }: { key: string }) {
           </a-layout-header>
           <a-layout-content class="app-content">
             <main class="content-inner">
+              <p v-if="storageFailed" class="order-storage-warning" role="alert">浏览器未能保存工具顺序，本次调整仅在当前页面生效。请检查浏览器存储设置或可用空间后重试。</p>
+              <span class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ orderAnnouncement }}</span>
               <router-view />
               <footer class="app-footer">LittleTools · 数据优先在你的浏览器中处理</footer>
             </main>

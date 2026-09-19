@@ -74,6 +74,34 @@ try {
       assert.deepEqual(await page.evaluate(inspectLayout), [], `${width} ${theme} ${name}`)
       checks.push({ width, theme, name })
     }
+    const assertSelectionVisible = async () => {
+      // Compare actual painted pixels in selected/unselected spaces on the same line.
+      // A selection can exist in the DOM and still be hidden behind an opaque line.
+      const points = await content.locator('.cm-line').nth(1).evaluate((line) => {
+        const point = (offset) => {
+          const range = document.createRange()
+          range.setStart(line.firstChild, offset)
+          range.setEnd(line.firstChild, offset + 1)
+          const box = range.getBoundingClientRect()
+          return { x: Math.floor(box.x + box.width / 2), y: Math.floor(box.y + box.height / 2) }
+        }
+        return [point(5), point(11)]
+      })
+      const png = (await page.screenshot()).toString('base64')
+      const [selected, unselected] = await page.evaluate(async ({ png, points }) => {
+        const image = new Image()
+        image.src = `data:image/png;base64,${png}`
+        await image.decode()
+        const canvas = document.createElement('canvas')
+        canvas.width = image.width
+        canvas.height = image.height
+        const context = canvas.getContext('2d')
+        context.drawImage(image, 0, 0)
+        return points.map(({ x, y }) => Array.from(context.getImageData(x, y, 1, 1).data).slice(0, 3))
+      }, { png, points })
+      const difference = selected.reduce((sum, value, channel) => sum + Math.abs(value - unselected[channel]), 0)
+      assert.ok(difference > 24, `Selection is not visibly distinct on the active line: ${selected} / ${unselected}`)
+    }
     await content.waitFor()
     await search.waitFor()
     await page.evaluate(() => { window.__storageWrites = [] })
@@ -86,6 +114,43 @@ try {
     assert.equal(await text(), original)
     assert.ok((await page.locator('.editor-status').textContent()).includes(`${Array.from(original).length} 字符 · 4 行`))
     assert.equal(await content.locator('a').count(), 0)
+
+    await content.focus()
+    await content.press(process.platform === 'darwin' ? 'Meta+Home' : 'Control+Home')
+    await content.press('ArrowDown')
+    await content.press('Home')
+    for (let index = 0; index < 11; index++) await content.press('Shift+ArrowRight')
+    assert.equal(await page.evaluate(() => getSelection().toString()), 'Alpha alpha')
+    await assertSelectionVisible()
+    await search.focus()
+    await assertSelectionVisible()
+
+    // Drag backwards to cover mouse selection independently of the keyboard path.
+    const line = content.locator('.cm-line').nth(1)
+    await line.scrollIntoViewIfNeeded()
+    const drag = await line.evaluate((element) => {
+      const point = (offset) => {
+        const range = document.createRange()
+        range.setStart(element.firstChild, offset)
+        range.collapse(true)
+        const box = range.getBoundingClientRect()
+        return { x: box.x, y: box.y + box.height / 2 }
+      }
+      return { start: point(11), end: point(0) }
+    })
+    await page.mouse.move(drag.start.x, drag.start.y)
+    await page.mouse.down()
+    await page.mouse.move(drag.end.x, drag.end.y, { steps: 8 })
+    await page.mouse.up()
+    assert.equal(await page.evaluate(() => getSelection().toString()), 'Alpha alpha')
+    await assertSelectionVisible()
+    await content.press(process.platform === 'darwin' ? 'Meta+Home' : 'Control+Home')
+    await content.press('Shift+ArrowDown')
+    for (let index = 0; index < 11; index++) await content.press('Shift+ArrowRight')
+    assert.equal(await page.evaluate(() => getSelection().toString()), '你好，世界 🌏\nAlpha alpha')
+    await assertSelectionVisible()
+    await mark('visible current-line selection with keyboard, mouse, blur and multiple lines')
+
     await search.fill('alpha')
     await checkStatus('1 / 3 处匹配')
     assert.ok(await page.locator('.cm-searchMatch').count() >= 3)

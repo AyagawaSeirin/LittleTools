@@ -272,10 +272,12 @@ onBeforeUnmount(() => {
 .text-editor :deep(.cm-line) { padding-inline: 12px; }
 .text-editor :deep(.cm-gutters) { border-color: var(--line); background: var(--panel-subtle); color: var(--text-muted); }
 .text-editor :deep(.cm-lineNumbers .cm-gutterElement) { min-width: 42px; padding-inline: 8px; }
-.text-editor :deep(.cm-activeLine), .text-editor :deep(.cm-activeLineGutter) { background: var(--panel-subtle); }
+/* CodeMirror draws selection below the text, so the active line must stay translucent. */
+.text-editor :deep(.cm-activeLine) { background: color-mix(in srgb, var(--text-muted) 7%, transparent); }
+.text-editor :deep(.cm-activeLineGutter) { background: var(--panel-subtle); }
 .text-editor :deep(.cm-placeholder) { color: var(--text-muted); }
 .text-editor :deep(.cm-cursor) { border-left-color: var(--text-main); }
-.text-editor :deep(.cm-selectionBackground), .text-editor :deep(.cm-focused .cm-selectionBackground) { background: color-mix(in srgb, var(--accent-text) 24%, var(--panel-bg)); }
+.text-editor :deep(.cm-selectionBackground), .text-editor :deep(.cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground) { background: color-mix(in srgb, var(--accent-text) 24%, var(--panel-bg)); }
 .text-editor :deep(.cm-searchMatch) { background: color-mix(in srgb, #ce9d25 24%, transparent); }
 .text-editor :deep(.cm-searchMatch-selected) { background: color-mix(in srgb, var(--accent-text) 25%, transparent); outline: 1px solid var(--accent-text); }
 .text-editor :deep(.cm-panels) { background: var(--panel-subtle); color: var(--text-main); border-color: var(--line); }

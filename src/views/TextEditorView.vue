@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import { ClearOutlined, CopyOutlined, EditOutlined, RedoOutlined, UndoOutlined } from '@ant-design/icons-vue'
+import { ClearOutlined, CopyOutlined, EditOutlined, ExportOutlined, FullscreenExitOutlined, FullscreenOutlined, PushpinOutlined, RedoOutlined, UndoOutlined } from '@ant-design/icons-vue'
 import { Compartment, EditorSelection, EditorState } from '@codemirror/state'
 import { drawSelection, EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap, isolateHistory, redo, redoDepth, undo, undoDepth } from '@codemirror/commands'
@@ -8,9 +8,11 @@ import { openSearchPanel, search, SearchQuery, setSearchQuery } from '@codemirro
 import { findTextMatch, textReplacementChanges } from '../utils/textEditor'
 import ToolPageHeader from '../components/ToolPageHeader.vue'
 import ToolCard from '../components/ToolCard.vue'
+import { useEditorWindow } from '../composables/useEditorWindow'
 
 // Deliberately omit rememberToolSettings: document, query and history are ephemeral.
 const editorHost = ref<HTMLElement | null>(null)
+const editorShell = ref<HTMLElement | null>(null)
 const searchPanelHost = shallowRef<HTMLElement | null>(null)
 const searchInput = ref<{ focus: () => void; select: () => void } | null>(null)
 const searchText = ref('')
@@ -32,6 +34,12 @@ const copyError = ref('')
 const wrapping = new Compartment()
 let editor: EditorView | undefined
 let feedbackTimer: ReturnType<typeof setTimeout> | undefined
+
+const { canPin, mode: windowMode, opening: openingWindow, error: windowError, isFullscreen, canFullscreen, openWindow, returnToPage, focusWindow, toggleFullscreen } = useEditorWindow(editorShell, (owner) => {
+  editor?.setRoot(owner)
+  editor?.requestMeasure()
+  editor?.focus()
+})
 
 const query = computed(() => new SearchQuery({
   search: searchText.value,
@@ -136,7 +144,8 @@ async function copyText() {
   if (!editor?.state.doc.length) return
   copyError.value = ''
   try {
-    await navigator.clipboard.writeText(editor.state.doc.toString())
+    const activeWindow = editor.dom.ownerDocument.defaultView || window
+    await activeWindow.navigator.clipboard.writeText(editor.state.doc.toString())
     // A pending clipboard request may complete after this page has been unmounted.
     if (editor) announce('已复制全文')
   } catch {
@@ -209,7 +218,29 @@ onBeforeUnmount(() => {
 
 <template>
   <ToolPageHeader title="在线文本编辑器" description="自由编辑文本，支持普通搜索、正则表达式与批量替换" :icon="EditOutlined" />
+  <ToolCard v-if="windowMode" class="detached-placeholder">
+    <h2>编辑器已移到{{ windowMode === 'pip' ? '置顶小窗' : '独立窗口' }}</h2>
+    <p>请保留此页面。关闭小窗后，文本和撤销历史会回到这里；刷新、关闭本页或切换工具会清空内容并关闭小窗。</p>
+    <div class="window-actions"><a-button @click="focusWindow">显示编辑窗口</a-button><a-button @click="returnToPage">返回此页编辑</a-button></div>
+  </ToolCard>
+  <div class="editor-home">
+  <div ref="editorShell" class="editor-shell" :class="{ 'is-detached': windowMode }">
   <ToolCard class="text-workbench">
+    <div class="window-toolbar">
+      <strong v-if="windowMode">{{ windowMode === 'pip' ? '置顶小窗' : '独立窗口' }} · 文本编辑器</strong>
+      <div class="window-actions">
+        <template v-if="!windowMode">
+          <a-button :disabled="!canPin || isFullscreen || openingWindow" :loading="openingWindow" aria-label="置顶小窗" @click="openWindow('pip')"><PushpinOutlined /> 置顶小窗</a-button>
+          <a-button :disabled="isFullscreen || openingWindow" aria-label="独立窗口" @click="openWindow('popup')"><ExportOutlined /> 独立窗口</a-button>
+        </template>
+        <a-button v-if="windowMode" aria-label="返回原页面" @click="returnToPage">返回原页面</a-button>
+        <a-button v-if="canFullscreen" :aria-label="isFullscreen ? '退出全屏' : '全屏编辑'" @click="toggleFullscreen"><FullscreenExitOutlined v-if="isFullscreen" /><FullscreenOutlined v-else /> {{ isFullscreen ? '退出全屏' : '全屏编辑' }}</a-button>
+      </div>
+    </div>
+    <p v-if="windowMode === 'pip'" class="window-hint">小窗保持置顶，可拖动和缩放。全屏编辑请先返回原页面，或使用普通独立窗口。</p>
+    <p v-else-if="windowMode === 'popup'" class="window-hint">普通独立窗口不会自动置顶。关闭窗口可回到原页面继续编辑。</p>
+    <p v-else-if="!canPin" class="window-hint">当前浏览器不支持置顶小窗，仍可使用普通独立窗口。</p>
+    <a-alert v-if="windowError" class="window-error" type="error" show-icon :message="windowError" />
     <div class="editor-toolbar">
       <a-button :disabled="!canUndo" aria-label="撤销" @click="undoEdit"><UndoOutlined /> 撤销</a-button>
       <a-button :disabled="!canRedo" aria-label="重做" @click="redoEdit"><RedoOutlined /> 重做</a-button>
@@ -255,12 +286,22 @@ onBeforeUnmount(() => {
       <span class="edit-feedback" role="status">{{ feedback }}</span>
     </div>
     <a-alert v-if="copyError" type="error" show-icon :message="copyError" />
-    <p class="notice privacy-note">所有编辑与搜索均在本地完成，正文、搜索词和替换内容不会上传或保存。刷新、关闭页面或切换工具后清空。</p>
+    <p class="notice privacy-note">所有编辑与搜索均在本地完成，正文、搜索词和替换内容不会上传或保存。刷新、关闭原页面或切换工具后清空。</p>
     <p class="editor-shortcuts">Ctrl / ⌘ + F 搜索 · Enter / Shift + Enter 切换匹配 · Ctrl / ⌘ + Z 撤销</p>
   </ToolCard>
+  </div>
+  </div>
 </template>
 
 <style scoped>
+.window-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; }
+.window-toolbar strong { font-size: 14px; }
+.window-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.window-hint { margin: 0 0 12px; color: var(--text-muted); font-size: 12px; line-height: 1.7; }
+.window-error { margin-bottom: 12px; }
+.detached-placeholder h2 { margin: 0 0 10px; font-size: 18px; }
+.detached-placeholder p { color: var(--text-muted); font-size: 13px; }
+.editor-shell { min-width: 0; font-size: 14px; }
 .editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
 .editor-toolbar > .ant-checkbox-wrapper { margin-inline-start: 8px; }
 .toolbar-spacer { flex: 1; }
@@ -306,4 +347,11 @@ onBeforeUnmount(() => {
   .editor-toolbar > .ant-checkbox-wrapper { margin-inline-start: 0; }
   .text-editor :deep(.cm-editor) { height: max(640px, 78vh); }
 }
+.editor-shell.is-detached, .editor-shell:fullscreen { width: 100%; height: 100dvh; background: var(--panel-bg); overflow: auto; }
+.editor-shell.is-detached .text-workbench, .editor-shell:fullscreen .text-workbench { display: flex; flex-direction: column; min-height: 100%; height: 100%; margin: 0; padding: 16px; border: 0; border-radius: 0; }
+.editor-shell.is-detached .text-editor, .editor-shell:fullscreen .text-editor { display: flex; flex: 1 0 auto; min-height: 180px; overflow: clip; }
+.editor-shell.is-detached :deep(.cm-editor), .editor-shell:fullscreen :deep(.cm-editor) { width: 100%; height: auto; flex: 1; }
+.editor-shell.is-detached :deep(.cm-scroller), .editor-shell:fullscreen :deep(.cm-scroller) { height: 0; min-height: 180px; flex: 1; }
+.editor-shell.is-detached .editor-status, .editor-shell:fullscreen .editor-status { flex-shrink: 0; }
+.editor-shell.is-detached .privacy-note, .editor-shell:fullscreen .privacy-note { margin-top: 6px; }
 </style>

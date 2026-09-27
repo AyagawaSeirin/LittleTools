@@ -5,7 +5,9 @@ import { Compartment, EditorSelection, EditorState } from '@codemirror/state'
 import { drawSelection, EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap, isolateHistory, redo, redoDepth, undo, undoDepth } from '@codemirror/commands'
 import { openSearchPanel, search, SearchQuery, setSearchQuery } from '@codemirror/search'
+import { syntaxHighlighting } from '@codemirror/language'
 import { findTextMatch, textReplacementChanges } from '../utils/textEditor'
+import { editorHighlightStyle, editorLanguageGroups, loadEditorLanguage } from '../utils/textEditorLanguages'
 import ToolPageHeader from '../components/ToolPageHeader.vue'
 import ToolCard from '../components/ToolCard.vue'
 import { useEditorWindow } from '../composables/useEditorWindow'
@@ -20,6 +22,9 @@ const replacement = ref('')
 const regexp = ref(false)
 const caseSensitive = ref(false)
 const lineWrapping = ref(true)
+const language = ref('plain')
+const languageLoading = ref(false)
+const languageError = ref('')
 const characters = ref(0)
 const lines = ref(1)
 const cursor = ref({ line: 1, column: 1 })
@@ -32,6 +37,8 @@ const selection = shallowRef({ from: 0, to: 0 })
 const feedback = ref('')
 const copyError = ref('')
 const wrapping = new Compartment()
+const syntaxLanguage = new Compartment()
+let languageRevision = 0
 let editor: EditorView | undefined
 let feedbackTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -166,6 +173,27 @@ watch(query, (current, previous) => {
 
 watch(lineWrapping, (enabled) => editor?.dispatch({ effects: wrapping.reconfigure(enabled ? EditorView.lineWrapping : []) }))
 
+async function applyLanguage() {
+  const revision = ++languageRevision
+  const name = language.value
+  languageError.value = ''
+  languageLoading.value = name !== 'plain'
+  // Clear the previous parser immediately, so a pending load never displays the wrong language.
+  editor?.dispatch({ effects: syntaxLanguage.reconfigure([]) })
+  if (name === 'plain') return
+  try {
+    const extension = await loadEditorLanguage(name)
+    if (revision !== languageRevision || !editor) return
+    editor.dispatch({ effects: syntaxLanguage.reconfigure(extension) })
+  } catch {
+    if (revision === languageRevision && editor) languageError.value = `${name} 高亮加载失败，暂按纯文本显示。可切换语言，或复制文本后刷新页面再试。`
+  } finally {
+    if (revision === languageRevision) languageLoading.value = false
+  }
+}
+
+watch(language, () => { void applyLanguage() })
+
 onMounted(() => {
   if (!editorHost.value) return
   const panel = document.createElement('div')
@@ -177,6 +205,7 @@ onMounted(() => {
       extensions: [
         lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), drawSelection(), history(),
         wrapping.of(EditorView.lineWrapping),
+        syntaxLanguage.of([]), syntaxHighlighting(editorHighlightStyle),
         placeholder('在这里输入或粘贴文本…'),
         EditorView.contentAttributes.of({ 'aria-label': '文本编辑区', 'aria-multiline': 'true', spellcheck: 'false', autocorrect: 'off', autocapitalize: 'off', autocomplete: 'off' }),
         EditorState.phrases.of({
@@ -209,6 +238,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  languageRevision += 1
   clearTimeout(feedbackTimer)
   editor?.destroy()
   editor = undefined
@@ -217,7 +247,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ToolPageHeader title="在线文本编辑器" description="自由编辑文本，支持普通搜索、正则表达式与批量替换" :icon="EditOutlined" />
+  <ToolPageHeader title="在线文本编辑器" description="自由编辑文本，支持多语言语法高亮、正则搜索与批量替换" :icon="EditOutlined" />
   <ToolCard v-if="windowMode" class="detached-placeholder">
     <h2>编辑器已移到{{ windowMode === 'pip' ? '置顶小窗' : '独立窗口' }}</h2>
     <p>请保留此页面。关闭小窗后，文本和撤销历史会回到这里；刷新、关闭本页或切换工具会清空内容并关闭小窗。</p>
@@ -242,6 +272,15 @@ onBeforeUnmount(() => {
     <p v-else-if="!canPin" class="window-hint">当前浏览器不支持置顶小窗，仍可使用普通独立窗口。</p>
     <a-alert v-if="windowError" class="window-error" type="error" show-icon :message="windowError" />
     <div class="editor-toolbar">
+      <label class="language-control" for="editor-language">
+        <span>语法高亮</span>
+        <select id="editor-language" v-model="language" aria-label="语法高亮语言" :aria-busy="languageLoading">
+          <option value="plain">纯文本（关闭高亮）</option>
+          <optgroup v-for="group in editorLanguageGroups" :key="group.label" :label="group.label">
+            <option v-for="item in group.languages" :key="item.name" :value="item.name">{{ item.name }}</option>
+          </optgroup>
+        </select>
+      </label>
       <a-button :disabled="!canUndo" aria-label="撤销" @click="undoEdit"><UndoOutlined /> 撤销</a-button>
       <a-button :disabled="!canRedo" aria-label="重做" @click="redoEdit"><RedoOutlined /> 重做</a-button>
       <a-checkbox v-model:checked="lineWrapping">自动换行</a-checkbox>
@@ -249,6 +288,8 @@ onBeforeUnmount(() => {
       <a-button :disabled="!characters" aria-label="复制全文" @click="copyText"><CopyOutlined /> 复制全文</a-button>
       <a-button :disabled="!characters" danger aria-label="清空文本" @click="clearText"><ClearOutlined /> 清空</a-button>
     </div>
+    <span v-if="languageLoading" class="language-status" role="status">正在加载 {{ language }} 高亮…</span>
+    <a-alert v-if="languageError" class="language-error" type="error" show-icon :message="languageError" />
 
     <div ref="editorHost" class="text-editor" />
 
@@ -304,6 +345,11 @@ onBeforeUnmount(() => {
 .editor-shell { min-width: 0; font-size: 14px; }
 .editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
 .editor-toolbar > .ant-checkbox-wrapper { margin-inline-start: 8px; }
+.language-control { display: flex; align-items: center; gap: 8px; max-width: 100%; color: var(--text-main); font-size: 13px; }
+.language-control > span { flex-shrink: 0; }
+.language-control select { width: 180px; min-width: 0; max-width: 100%; height: 32px; padding-inline: 10px 24px; border: 1px solid var(--line); border-radius: 6px; color: var(--text-main); background-color: var(--panel-bg); cursor: pointer; }
+.language-status { display: block; margin-bottom: 10px; color: var(--text-muted); font-size: 12px; }
+.language-error { margin-bottom: 12px; }
 .toolbar-spacer { flex: 1; }
 .text-editor { overflow: hidden; border: 1px solid var(--line); border-radius: 6px; }
 .text-editor :deep(.cm-editor) { height: clamp(460px, 68vh, 920px); background: var(--panel-bg); color: var(--text-main); outline: none; }
@@ -317,6 +363,21 @@ onBeforeUnmount(() => {
 .text-editor :deep(.cm-activeLine) { background: color-mix(in srgb, var(--text-muted) 7%, transparent); }
 .text-editor :deep(.cm-activeLineGutter) { background: var(--panel-subtle); }
 .text-editor :deep(.cm-placeholder) { color: var(--text-muted); }
+.editor-shell { --syntax-keyword: #8b2b80; --syntax-string: #25663d; --syntax-number: #955011; --syntax-type: #145f82; --syntax-function: #245dae; --syntax-property: #725026; }
+:root[data-theme='dark'] .editor-shell { --syntax-keyword: #e5a1db; --syntax-string: #a0d5a5; --syntax-number: #e8b886; --syntax-type: #8ad0df; --syntax-function: #a3c5f7; --syntax-property: #dcc596; }
+.text-editor :deep(.text-syntax-keyword) { color: var(--syntax-keyword); }
+.text-editor :deep(.text-syntax-string) { color: var(--syntax-string); }
+.text-editor :deep(.text-syntax-number) { color: var(--syntax-number); }
+.text-editor :deep(.text-syntax-type) { color: var(--syntax-type); }
+.text-editor :deep(.text-syntax-function) { color: var(--syntax-function); }
+.text-editor :deep(.text-syntax-property) { color: var(--syntax-property); }
+.text-editor :deep(.text-syntax-comment) { color: var(--text-muted); }
+.text-editor :deep(.text-syntax-heading) { color: var(--syntax-function); font-weight: 600; }
+.text-editor :deep(.text-syntax-strong) { font-weight: 700; }
+.text-editor :deep(.text-syntax-emphasis) { font-style: italic; }
+.text-editor :deep(.text-syntax-link) { color: var(--syntax-function); text-decoration: underline; }
+.text-editor :deep(.text-syntax-strike) { text-decoration: line-through; }
+.text-editor :deep(.text-syntax-invalid) { text-decoration: underline wavy var(--error-text); }
 .text-editor :deep(.cm-cursor) { border-left-color: var(--text-main); }
 .text-editor :deep(.cm-selectionBackground), .text-editor :deep(.cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground) { background: color-mix(in srgb, var(--accent-text) 24%, var(--panel-bg)); }
 .text-editor :deep(.cm-searchMatch) { background: color-mix(in srgb, #ce9d25 24%, transparent); }

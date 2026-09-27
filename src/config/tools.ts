@@ -87,7 +87,7 @@ export const tools: ToolItem[] = [
     path: '/text-editor',
     name: '在线文本编辑器',
     shortName: '文本编辑',
-    description: '大文本编辑、正则搜索与替换，内容不保存',
+    description: '多语言语法高亮、正则搜索与替换，内容不保存',
     icon: EditOutlined,
   },
   {

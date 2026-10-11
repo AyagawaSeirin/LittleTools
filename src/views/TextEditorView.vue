@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import { ClearOutlined, CopyOutlined, EditOutlined, ExportOutlined, FullscreenExitOutlined, FullscreenOutlined, PushpinOutlined, RedoOutlined, UndoOutlined } from '@ant-design/icons-vue'
+import { ClearOutlined, CopyOutlined, EditOutlined, FullscreenExitOutlined, FullscreenOutlined, PushpinFilled, PushpinOutlined, RedoOutlined, UndoOutlined } from '@ant-design/icons-vue'
 import { Compartment, EditorSelection, EditorState } from '@codemirror/state'
 import { drawSelection, EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap, isolateHistory, redo, redoDepth, undo, undoDepth } from '@codemirror/commands'
@@ -42,7 +42,7 @@ let languageRevision = 0
 let editor: EditorView | undefined
 let feedbackTimer: ReturnType<typeof setTimeout> | undefined
 
-const { canPin, mode: windowMode, opening: openingWindow, error: windowError, isFullscreen, canFullscreen, openWindow, returnToPage, focusWindow, toggleFullscreen } = useEditorWindow(editorShell, (owner) => {
+const { canPin, mode: windowMode, opening: openingWindow, error: windowError, pinConfirmationNeeded, isFullscreen, canFullscreen, openWindow, togglePin, returnToPage, focusWindow, toggleFullscreen } = useEditorWindow(editorShell, (owner) => {
   editor?.setRoot(owner)
   editor?.requestMeasure()
   editor?.focus()
@@ -249,27 +249,26 @@ onBeforeUnmount(() => {
 <template>
   <ToolPageHeader title="在线文本编辑器" description="自由编辑文本，支持多语言语法高亮、正则搜索与批量替换" :icon="EditOutlined" />
   <ToolCard v-if="windowMode" class="detached-placeholder">
-    <h2>编辑器已移到{{ windowMode === 'pip' ? '置顶小窗' : '独立窗口' }}</h2>
+    <h2>编辑器已移到{{ windowMode === 'pip' ? '置顶窗口' : '未置顶窗口' }}</h2>
     <p>请保留此页面。关闭小窗后，文本和撤销历史会回到这里；刷新、关闭本页或切换工具会清空内容并关闭小窗。</p>
-    <div class="window-actions"><a-button @click="focusWindow">显示编辑窗口</a-button><a-button @click="returnToPage">返回此页编辑</a-button></div>
+    <p v-if="pinConfirmationNeeded" class="pin-confirmation" role="status">请在此点击“置顶”，当前窗口的文本和编辑状态会保留。</p>
+    <div class="window-actions"><a-button v-if="windowMode === 'popup' && canPin" :type="pinConfirmationNeeded ? 'primary' : 'default'" :disabled="openingWindow || isFullscreen" :loading="openingWindow" aria-label="置顶" @click="togglePin"><PushpinOutlined /> 置顶</a-button><a-button @click="focusWindow">显示编辑窗口</a-button><a-button @click="returnToPage">返回此页编辑</a-button></div>
   </ToolCard>
   <div class="editor-home">
   <div ref="editorShell" class="editor-shell" :class="{ 'is-detached': windowMode }">
   <ToolCard class="text-workbench">
     <div class="window-toolbar">
-      <strong v-if="windowMode">{{ windowMode === 'pip' ? '置顶小窗' : '独立窗口' }} · 文本编辑器</strong>
+      <strong v-if="windowMode">文本编辑器 <span class="pin-status" role="status">{{ windowMode === 'pip' ? '已置顶' : '未置顶' }}</span></strong>
       <div class="window-actions">
-        <template v-if="!windowMode">
-          <a-button :disabled="!canPin || isFullscreen || openingWindow" :loading="openingWindow" aria-label="置顶小窗" @click="openWindow('pip')"><PushpinOutlined /> 置顶小窗</a-button>
-          <a-button :disabled="isFullscreen || openingWindow" aria-label="独立窗口" @click="openWindow('popup')"><ExportOutlined /> 独立窗口</a-button>
-        </template>
+        <a-button v-if="!windowMode" class="window-launch" :disabled="isFullscreen || openingWindow" :loading="openingWindow" :aria-label="canPin ? '置顶窗口' : '编辑窗口'" @click="openWindow"><PushpinOutlined /> {{ canPin ? '置顶窗口' : '编辑窗口' }}</a-button>
+        <a-button v-if="windowMode" class="pin-toggle" :disabled="!canPin || isFullscreen || openingWindow" :loading="openingWindow" :aria-label="windowMode === 'pip' ? '取消置顶' : '置顶'" :aria-pressed="windowMode === 'pip'" :title="!canPin ? '当前浏览器不支持置顶' : isFullscreen ? '请先退出全屏再置顶' : undefined" @click="togglePin"><PushpinFilled v-if="windowMode === 'pip'" /><PushpinOutlined v-else /> {{ windowMode === 'pip' ? '取消置顶' : '置顶' }}</a-button>
         <a-button v-if="windowMode" aria-label="返回原页面" @click="returnToPage">返回原页面</a-button>
-        <a-button v-if="canFullscreen" :aria-label="isFullscreen ? '退出全屏' : '全屏编辑'" @click="toggleFullscreen"><FullscreenExitOutlined v-if="isFullscreen" /><FullscreenOutlined v-else /> {{ isFullscreen ? '退出全屏' : '全屏编辑' }}</a-button>
+        <a-button v-if="canFullscreen" :disabled="openingWindow" :aria-label="isFullscreen ? '退出全屏' : '全屏编辑'" @click="toggleFullscreen"><FullscreenExitOutlined v-if="isFullscreen" /><FullscreenOutlined v-else /> {{ isFullscreen ? '退出全屏' : '全屏编辑' }}</a-button>
       </div>
     </div>
-    <p v-if="windowMode === 'pip'" class="window-hint">小窗保持置顶，可拖动和缩放。全屏编辑请先返回原页面，或使用普通独立窗口。</p>
-    <p v-else-if="windowMode === 'popup'" class="window-hint">普通独立窗口不会自动置顶。关闭窗口可回到原页面继续编辑。</p>
-    <p v-else-if="!canPin" class="window-hint">当前浏览器不支持置顶小窗，仍可使用普通独立窗口。</p>
+    <p v-if="windowMode === 'pip'" class="window-hint">窗口保持置顶，可拖动和缩放；取消置顶后可继续编辑或全屏显示。</p>
+    <p v-else-if="!canPin" class="window-hint">当前浏览器不支持置顶，编辑窗口会以普通窗口打开。</p>
+    <p v-else-if="windowMode === 'popup'" class="window-hint">{{ pinConfirmationNeeded ? '请在原页面点击“置顶”，当前编辑内容会保留。' : '当前窗口未置顶，可继续编辑、全屏显示或重新置顶。' }}</p>
     <a-alert v-if="windowError" class="window-error" type="error" show-icon :message="windowError" />
     <div class="editor-toolbar">
       <label class="language-control" for="editor-language">
@@ -337,6 +336,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .window-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; }
 .window-toolbar strong { font-size: 14px; }
+.pin-status { margin-inline-start: 8px; color: var(--text-muted); font-size: 12px; font-weight: 400; }
 .window-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .window-hint { margin: 0 0 12px; color: var(--text-muted); font-size: 12px; line-height: 1.7; }
 .window-error { margin-bottom: 12px; }

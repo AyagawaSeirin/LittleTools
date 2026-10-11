@@ -48,18 +48,33 @@ try {
     await page.evaluate(() => { window.__storageWrites = [] })
     const requests = []
     context.on('request', (request) => requests.push(`${request.url()} ${request.postData() || ''}`))
-    const canPin = await button(page, '置顶小窗').isEnabled()
-    const kinds = canPin ? ['popup', 'pip'] : ['popup']
+    const canPin = await page.locator('.window-launch').getAttribute('aria-label') === '置顶窗口'
+    assert.equal(await page.locator('.window-launch').count(), 1)
+    assert.equal(await button(page, '独立窗口').count(), 0)
+    const kinds = canPin ? ['pip', 'popup'] : ['popup']
     if (!canPin) {
-      await page.getByText('当前浏览器不支持置顶小窗，仍可使用普通独立窗口。', { exact: true }).waitFor()
+      await page.getByText('当前浏览器不支持置顶，编辑窗口会以普通窗口打开。', { exact: true }).waitFor()
       report.checks.push({ theme, state: 'unsupported PiP offers ordinary window' })
+    }
+
+    const switchPin = async (current, pinned, fromMain = false) => {
+      const next = context.waitForEvent('page')
+      await button(fromMain ? page : current, pinned ? '置顶' : '取消置顶').click({ noWaitAfter: true })
+        .catch((error) => { if (!current.isClosed()) throw error })
+      const child = await next
+      await editor(child).waitFor()
+      assert.ok(current.isClosed(), 'The previous native window must close after the transfer')
+      assert.equal(await page.locator('.cm-editor').count(), 0)
+      assert.equal(await child.locator('.pin-toggle').getAttribute('aria-pressed'), String(pinned))
+      return child
     }
 
     const open = async (kind) => {
       const pending = context.waitForEvent('page')
-      await button(page, kind === 'pip' ? '置顶小窗' : '独立窗口').click()
-      const child = await pending
+      await page.locator('.window-launch').click()
+      let child = await pending
       await editor(child).waitFor()
+      if (kind === 'popup' && canPin) child = await switchPin(child, false)
       return child
     }
 
@@ -137,23 +152,134 @@ try {
       report.checks.push({ theme, kind, state: 'return/close keeps undo history with no text persistence or upload' })
     }
 
-    // Popup blocking and a rejected PiP request must leave the editor intact.
-    await page.evaluate(() => { window.__originalOpen = window.open; window.open = () => null })
-    await button(page, '独立窗口').click()
-    await page.getByText('新窗口被浏览器拦截，请允许本站弹出窗口后重试。', { exact: true }).waitFor()
-    assert.equal(await copiedText(page), marker)
-    await page.evaluate(() => { window.open = window.__originalOpen })
+    // Pin/unpin the same editor repeatedly; no document or EditorView recreation is allowed.
     if (canPin) {
+      await page.getByRole('combobox', { name: '语法高亮语言', exact: true }).selectOption('JavaScript')
+      await page.locator('.cm-content [class*="text-syntax-"]').first().waitFor()
+      await search(page).fill('')
+      await search(page).fill('(\\d+)')
+      let child = await open('pip')
+      await editor(child).evaluate((element) => { element.__editorIdentity = 'same-editor' })
+      const assertSession = async (window) => {
+        assert.equal(await editor(window).evaluate((element) => element.__editorIdentity), 'same-editor')
+        assert.equal(await search(window).inputValue(), '(\\d+)')
+        assert.equal(await replacement(window).inputValue(), '[$1]')
+        assert.equal(await window.getByRole('combobox', { name: '语法高亮语言', exact: true }).inputValue(), 'JavaScript')
+        assert.equal(await copiedText(window), marker)
+      }
+      child = await switchPin(child, false)
+      await assertSession(child)
+      assert.equal(await button(child, '全屏编辑').count(), 1)
+      assert.equal(await button(child, '独立窗口').count(), 0)
+      // Return-to-opener activation must not depend on a recent click in the main page.
+      // Do not evaluate in the main page before the child click: Playwright evaluation activates it.
+      await child.waitForTimeout(6100)
+      await button(child, '置顶').click()
+      await page.locator('.pin-confirmation').waitFor()
+      child = await switchPin(child, true, true)
+      await assertSession(child)
+      child = await switchPin(child, false)
+      await assertSession(child)
+      child = await switchPin(child, true, true)
+      await assertSession(child)
+      await button(child, '替换当前').click()
+      assert.equal(await copiedText(child), marker.replace('123', '[123]'))
+      child = await switchPin(child, false)
+      await button(child, '撤销').click()
+      assert.equal(await copiedText(child), marker)
+      await button(child, '重做').click()
+      assert.equal(await copiedText(child), marker.replace('123', '[123]'))
+      await button(child, '撤销').click()
+      child = await switchPin(child, true, true)
+      await assertSession(child)
+      report.checks.push({ theme, state: 'repeated pin/unpin preserves the same DOM, source, query, language and activation fallback' })
+
+      // If unpinning is blocked, the pinned editor must stay alive.
+      await page.evaluate(() => { window.__originalOpen = window.open; window.open = () => null })
+      await button(child, '取消置顶').click()
+      await child.getByText('新窗口被浏览器拦截，请允许本站弹出窗口后重试。当前窗口和编辑内容已保留。', { exact: true }).waitFor()
+      assert.ok(!child.isClosed())
+      await assertSession(child)
+      assert.equal(await child.locator('.pin-toggle').getAttribute('aria-pressed'), 'true')
+      await page.evaluate(() => { window.open = window.__originalOpen })
+
+      // Also roll back a failure after the DOM was adopted by the destination document.
+      await page.evaluate(() => {
+        const original = window.open
+        window.open = (...args) => {
+          const candidate = original.apply(window, args)
+          const write = candidate.document.write.bind(candidate.document)
+          candidate.document.write = (...parts) => {
+            write(...parts)
+            const append = candidate.document.body.append.bind(candidate.document.body)
+            candidate.document.body.append = (...nodes) => { append(...nodes); throw new Error('Simulated adoption failure') }
+          }
+          return candidate
+        }
+      })
+      await button(child, '取消置顶').click()
+      await child.getByText('窗口切换失败，原窗口和编辑内容已保留，请重试。', { exact: true }).waitFor()
+      await assertSession(child)
+      await page.evaluate(() => { window.open = window.__originalOpen })
+      child = await switchPin(child, false)
+      await assertSession(child)
       await page.evaluate(() => {
         window.__originalRequest = documentPictureInPicture.requestWindow
         documentPictureInPicture.requestWindow = async () => { throw new DOMException('Denied', 'NotAllowedError') }
       })
-      await button(page, '置顶小窗').click()
-      await page.getByText('浏览器未允许打开置顶小窗，可以尝试普通独立窗口。', { exact: true }).waitFor()
-      assert.equal(await copiedText(page), marker)
+      await button(page, '置顶').click()
+      await child.getByText('浏览器未允许置顶，当前窗口和编辑内容已保留。', { exact: true }).waitFor()
+      await assertSession(child)
+      assert.equal(await child.locator('.pin-toggle').getAttribute('aria-pressed'), 'false')
       await page.evaluate(() => { documentPictureInPicture.requestWindow = window.__originalRequest })
+      report.checks.push({ theme, state: 'blocked popup, failed adoption and rejected pin preserve the original editing session' })
+
+      // Cancel a delayed pin request by returning to the main page.
+      await page.evaluate(() => {
+        documentPictureInPicture.requestWindow = function (options) {
+          const result = window.__originalRequest.call(this, options)
+          return result.then((child) => new Promise((resolve) => { window.__finishPin = () => resolve(child) }))
+        }
+      })
+      const pendingCandidate = context.waitForEvent('page')
+      await button(page, '置顶').click()
+      const candidate = await pendingCandidate
+      await page.waitForFunction(() => typeof window.__finishPin === 'function')
+      await button(page, '返回此页编辑').click()
+      await page.evaluate(() => { window.__finishPin(); documentPictureInPicture.requestWindow = window.__originalRequest })
+      await editor(page).waitFor()
+      await page.waitForFunction(() => !documentPictureInPicture.window || documentPictureInPicture.window.closed)
+      assert.ok(candidate.isClosed())
+      assert.ok(child.isClosed())
+      assert.equal(await copiedText(page), marker)
+      assert.equal(await editor(page).evaluate((element) => element.__editorIdentity), 'same-editor')
+      report.checks.push({ theme, state: 'returning during a pending pin closes the late window and retains the editor' })
+
+      const rejectingSource = await open('popup')
+      await page.evaluate(() => {
+        documentPictureInPicture.requestWindow = () => new Promise((_resolve, reject) => { window.__rejectPin = reject })
+      })
+      await button(page, '置顶').click()
+      await page.waitForFunction(() => typeof window.__rejectPin === 'function')
+      await button(page, '返回此页编辑').click()
+      await page.evaluate(() => {
+        window.__rejectPin(new DOMException('Cancelled', 'NotAllowedError'))
+        documentPictureInPicture.requestWindow = window.__originalRequest
+      })
+      await page.waitForTimeout(100)
+      await editor(page).waitFor()
+      assert.ok(rejectingSource.isClosed())
+      assert.equal(await copiedText(page), marker)
+      assert.equal(await editor(page).evaluate((element) => element.__editorIdentity), 'same-editor')
+      report.checks.push({ theme, state: 'late request rejection cannot move the editor back into a closed window' })
+    } else {
+      await page.evaluate(() => { window.__originalOpen = window.open; window.open = () => null })
+      await page.locator('.window-launch').click()
+      await page.getByText('新窗口被浏览器拦截，请允许本站弹出窗口后重试。当前窗口和编辑内容已保留。', { exact: true }).waitFor()
+      assert.equal(await copiedText(page), marker)
+      await page.evaluate(() => { window.open = window.__originalOpen })
+      report.checks.push({ theme, state: 'unsupported PiP and blocked fallback preserve the editor' })
     }
-    report.checks.push({ theme, state: 'blocked/rejected windows preserve editor contents' })
 
     const routeChild = await open(kinds.at(-1))
     await page.evaluate(() => { location.hash = '/' })

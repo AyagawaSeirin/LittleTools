@@ -100,11 +100,18 @@ try {
     }
     report.checks.push({ theme, state: 'theme switching, search highlights, replacement, undo/redo, plain text and responsive layout' })
 
-    const kinds = await button(page, '置顶小窗').isEnabled() ? ['popup', 'pip'] : ['popup']
+    const canPin = await page.locator('.window-launch').getAttribute('aria-label') === '置顶窗口'
+    const kinds = canPin ? ['pip', 'popup'] : ['popup']
     for (const kind of kinds) {
       const pending = context.waitForEvent('page')
-      await button(page, kind === 'pip' ? '置顶小窗' : '独立窗口').click()
-      const child = await pending
+      await page.locator('.window-launch').click()
+      let child = await pending
+      if (kind === 'popup' && canPin) {
+        const next = context.waitForEvent('page')
+        const previous = child
+        await button(previous, '取消置顶').click({ noWaitAfter: true }).catch((error) => { if (!previous.isClosed()) throw error })
+        child = await next
+      }
       await tokens(child).first().waitFor()
       await child.setViewportSize({ width: 800, height: 640 })
       assert.equal(await language(child).inputValue(), 'JavaScript')

@@ -4,6 +4,13 @@ interface DocumentPictureInPicture {
   requestWindow(options: { width: number; height: number }): Promise<Window>
 }
 
+interface EditorWindowSession {
+  window: Window
+  document: Document
+  stopMirroring: () => void
+  onPageHide: () => void
+}
+
 /** Copy only presentation, never document content, to the temporary window. */
 function mirrorPresentation(target: Document) {
   const base = target.createElement('base')
@@ -60,22 +67,29 @@ export function useEditorWindow(shell: Ref<HTMLElement | null>, onDocumentChange
   const mode = ref<'pip' | 'popup' | null>(null)
   const opening = ref(false)
   const error = ref('')
+  const pinConfirmationNeeded = ref(false)
   const isFullscreen = ref(false)
   const canFullscreen = computed(() => mode.value !== 'pip' && Boolean(shell.value?.ownerDocument.fullscreenEnabled))
-  let detached: Window | undefined
+  let active: EditorWindowSession | undefined
   let originalParent: HTMLElement | null = null
-  let stopMirroring: (() => void) | undefined
   let disposed = false
+  let transition = 0
 
   const updateFullscreen = () => { isFullscreen.value = Boolean(shell.value?.ownerDocument.fullscreenElement) }
 
+  function release(session: EditorWindowSession) {
+    session.window.removeEventListener('pagehide', session.onPageHide)
+    session.document.removeEventListener('fullscreenchange', updateFullscreen)
+    session.stopMirroring()
+  }
+
   function restore() {
-    const previous = detached
-    detached = undefined
-    previous?.removeEventListener('pagehide', restore)
-    previous?.document.removeEventListener('fullscreenchange', updateFullscreen)
-    stopMirroring?.()
-    stopMirroring = undefined
+    transition += 1
+    opening.value = false
+    pinConfirmationNeeded.value = false
+    const previous = active
+    active = undefined
+    if (previous) release(previous)
     mode.value = null
     if (shell.value && originalParent) {
       // Move the existing Vue subtree back synchronously, before the child is destroyed.
@@ -87,9 +101,9 @@ export function useEditorWindow(shell: Ref<HTMLElement | null>, onDocumentChange
   }
 
   function closeWindow() {
-    const previous = detached
+    const previous = active
     restore()
-    previous?.close()
+    previous?.window.close()
   }
 
   function returnToPage() {
@@ -97,50 +111,108 @@ export function useEditorWindow(shell: Ref<HTMLElement | null>, onDocumentChange
     window.focus()
   }
 
-  function focusWindow() { detached?.focus() }
+  function focusWindow() { active?.window.focus() }
 
-  async function openWindow(kind: 'pip' | 'popup') {
+  async function changeWindow(kind: 'pip' | 'popup') {
     if (disposed || opening.value || !shell.value) return
-    if (detached && !detached.closed) { detached.focus(); return }
+    if (mode.value === kind && active && !active.window.closed) { focusWindow(); return }
     error.value = ''
+    pinConfirmationNeeded.value = false
     opening.value = true
+    const revision = ++transition
+    const previous = active
+    const previousParent = shell.value.parentElement
+    const previousDocument = shell.value.ownerDocument
+    const width = Math.max(320, Math.round(previous?.window.innerWidth || 800))
+    const height = Math.max(240, Math.round(previous?.window.innerHeight || 640))
     let child: Window | null = null
+    let candidate: EditorWindowSession | undefined
+    let transferred: EditorWindowSession | undefined
+    let phase: 'request' | 'prepare' = 'request'
     try {
       if (kind === 'pip') {
-        if (!canPin || !pip) throw new Error('当前浏览器不支持置顶小窗，请使用独立窗口。')
+        if (!canPin || !pip) throw new Error('Picture-in-Picture unavailable')
         // This must run directly in the click handler to retain user activation.
-        child = await pip.requestWindow({ width: 800, height: 640 })
+        child = await pip.requestWindow({ width, height })
       } else {
-        child = window.open('', '_blank', 'popup=yes,width=960,height=720,resizable=yes,scrollbars=yes')
-        if (!child) throw new Error('新窗口被浏览器拦截，请允许本站弹出窗口后重试。')
+        const position = previous ? `,left=${Math.round(previous.window.screenX)},top=${Math.round(previous.window.screenY)}` : ''
+        child = window.open('', '_blank', `popup=yes,width=${width},height=${height},resizable=yes,scrollbars=yes${position}`)
+        if (!child) throw new Error('Popup blocked')
       }
-      if (disposed || !shell.value || child.closed) { child.close(); return }
+      if (disposed || revision !== transition || !shell.value || child.closed) { child.close(); return }
+      phase = 'prepare'
       // about:blank starts in quirks mode in some browsers. Only this fixed shell is written;
       // the user's text stays in the existing editor DOM and never enters HTML source.
       child.document.open()
       child.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body></body></html>')
       child.document.close()
-      detached = child
-      originalParent = shell.value.parentElement
-      stopMirroring = mirrorPresentation(child.document)
+      const session: EditorWindowSession = {
+        window: child,
+        document: child.document,
+        stopMirroring: mirrorPresentation(child.document),
+        onPageHide: () => {
+          // An old window closing after a pin switch must not reclaim the new editor.
+          if (active === session) restore()
+        },
+      }
+      candidate = session
       child.document.body.classList.add('editor-window-document')
-      mode.value = kind
-      child.addEventListener('pagehide', restore, { once: true })
+      child.addEventListener('pagehide', session.onPageHide, { once: true })
       child.document.addEventListener('fullscreenchange', updateFullscreen)
       // Keeping this subtree and EditorView alive preserves query, selection and undo history.
+      const scrollPositions = [shell.value, ...shell.value.querySelectorAll<HTMLElement>('.cm-scroller')]
+        .map((element) => ({ element, top: element.scrollTop, left: element.scrollLeft }))
       child.document.body.append(shell.value)
       onDocumentChange(child.document)
+      const restoreScroll = () => scrollPositions.forEach(({ element, top, left }) => element.scrollTo(left, top))
+      restoreScroll()
+      child.requestAnimationFrame(() => { if (active === session) restoreScroll() })
+      originalParent ??= previousParent
+      active = session
+      mode.value = kind
       updateFullscreen()
-      child.focus()
-    } catch (reason) {
-      closeWindow()
+      transferred = session
+    } catch {
+      if (candidate) release(candidate)
+      if (!disposed && revision === transition && candidate && shell.value && previousParent && shell.value.ownerDocument === candidate.document) {
+        previousParent.append(shell.value)
+        onDocumentChange(previousDocument)
+      }
       if (child && !child.closed) child.close()
-      if (!disposed) error.value = reason instanceof Error && !(reason instanceof DOMException)
-        ? reason.message
-        : '浏览器未允许打开置顶小窗，可以尝试普通独立窗口。'
+      if (!disposed && revision === transition) {
+        error.value = phase === 'prepare'
+          ? '窗口切换失败，原窗口和编辑内容已保留，请重试。'
+          : kind === 'pip'
+            ? '浏览器未允许置顶，当前窗口和编辑内容已保留。'
+            : '新窗口被浏览器拦截，请允许本站弹出窗口后重试。当前窗口和编辑内容已保留。'
+      }
     } finally {
-      opening.value = false
+      if (revision === transition) opening.value = false
     }
+    // Close the old native window only after the transfer has committed. Request/setup
+    // failures above leave the previous session's listeners, styles and editor intact.
+    if (transferred) {
+      if (previous) { release(previous); previous.window.close() }
+      transferred.window.focus()
+    }
+  }
+
+  function openWindow() {
+    if (active && !active.window.closed) { focusWindow(); return }
+    return changeWindow(canPin ? 'pip' : 'popup')
+  }
+
+  function togglePin() {
+    if (!active || !canPin || isFullscreen.value || opening.value) return
+    error.value = ''
+    // A normal popup's click does not activate its opener. Unlike PiP -> popup, repinning
+    // sometimes needs one trusted click in the original tab; do not try to fake activation.
+    if (mode.value === 'popup' && !window.navigator.userActivation?.isActive) {
+      pinConfirmationNeeded.value = true
+      window.focus()
+      return
+    }
+    return changeWindow(mode.value === 'pip' ? 'popup' : 'pip')
   }
 
   async function toggleFullscreen() {
@@ -167,5 +239,5 @@ export function useEditorWindow(shell: Ref<HTMLElement | null>, onDocumentChange
     window.removeEventListener('pagehide', closeWindow)
   })
 
-  return { canPin, mode, opening, error, isFullscreen, canFullscreen, openWindow, returnToPage, focusWindow, toggleFullscreen }
+  return { canPin, mode, opening, error, pinConfirmationNeeded, isFullscreen, canFullscreen, openWindow, togglePin, returnToPage, focusWindow, toggleFullscreen }
 }

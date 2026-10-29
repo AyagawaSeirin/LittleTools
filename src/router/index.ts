@@ -18,6 +18,7 @@ const router = createRouter({
     { path: '/text-encoding', component: () => import('../views/TextEncodingView.vue') },
     { path: '/json-formatter', component: () => import('../views/JsonFormatterView.vue') },
     { path: '/address-generator', component: () => import('../views/AddressGeneratorView.vue') },
+    { path: '/utility-bill', component: () => import('../views/UtilityBillView.vue') },
     { path: '/nmap-generator', component: () => import('../views/NmapGeneratorView.vue') },
     { path: '/iperf3-generator', component: () => import('../views/Iperf3GeneratorView.vue') },
     { path: '/tcpdump-generator', component: () => import('../views/TcpdumpGeneratorView.vue') },

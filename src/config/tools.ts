@@ -9,6 +9,7 @@ import {
   DeploymentUnitOutlined,
   EditOutlined,
   EnvironmentOutlined,
+  FileTextOutlined,
   GlobalOutlined,
   InfoCircleOutlined,
   KeyOutlined,
@@ -121,6 +122,14 @@ export const tools: ToolItem[] = [
     shortName: '多国地址',
     description: '生成符合各国格式的虚构地址与测试资料',
     icon: EnvironmentOutlined,
+  },
+  {
+    key: 'utility-bill',
+    path: '/utility-bill',
+    name: '水电账单演示文档',
+    shortName: '账单演示',
+    description: '12 国账单模板，生成高清主图、实拍模拟图与 PDF',
+    icon: FileTextOutlined,
   },
   {
     key: 'nmap',

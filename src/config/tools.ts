@@ -126,8 +126,8 @@ export const tools: ToolItem[] = [
   {
     key: 'utility-bill',
     path: '/utility-bill',
-    name: '水电账单演示文档',
-    shortName: '账单演示',
+    name: '账单生成',
+    shortName: '账单生成',
     description: '12 国账单模板，生成高清主图、实拍模拟图与 PDF',
     icon: FileTextOutlined,
   },

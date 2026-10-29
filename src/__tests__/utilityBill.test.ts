@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { billCountries, billTemplates, billMoney, createUtilityBill, formatBillName, randomBillAddress, validateBillForm, type BillForm } from '../utils/utilityBill'
 import { escapeBillXml, renderBillPhotoSvg, renderBillSvg, wrapBillText } from '../utils/utilityBillRender'
 import { isValidAddressPostalCode, type AddressDataPack } from '../utils/address'
+import { utilityBillSources } from '../data/utilityBillSources'
 
 const packs = import.meta.glob('../../public/address-data/*.json', { eager: true, import: 'default' }) as Record<string, AddressDataPack>
 const now = new Date(2026, 0, 1, 12)
@@ -80,13 +81,33 @@ describe('utility bill rendering', () => {
     expect(renderBillPhotoSvg(bill, svg)).toContain('Alex &lt;script&gt;')
   })
 
-  it('wraps unbroken and non-Latin addresses and keeps maximum-length input above the billing table', () => {
+  it('keeps full maximum-length customer text inside its reserved area in every layout', () => {
     expect(wrapBillText('A'.repeat(80), 120, 12).length).toBeGreaterThan(2)
-    const bill = make({ name: 'W'.repeat(70), address1: '路'.repeat(90), address2: '号'.repeat(90), city: '城'.repeat(60), region: '区'.repeat(60) })
-    const svg = renderBillSvg(bill)
-    const addressRows = [...svg.matchAll(/<text x="54" y="([\d.]+)"[^>]*>([^<]*)<\/text>/g)].filter((match) => /[W路号城区]/.test(match[2]))
-    expect(addressRows.length).toBeGreaterThan(6)
-    expect(Math.max(...addressRows.map((match) => Number(match[1])))).toBeLessThan(469)
-    for (const character of ['路', '号', '城', '区']) expect(svg.split(character).length - 1).toBe(character === '路' || character === '号' ? 90 : 60)
+    for (const selectedTemplate of billTemplates) {
+      const selectedCountry = billCountries.find((item) => item.code === selectedTemplate.country)!
+      const pack = packs[`../../public/address-data/${selectedCountry.code.toLowerCase()}.json`]
+      const bill = createUtilityBill(selectedCountry, selectedTemplate, { ...form, ...randomBillAddress(selectedCountry, pack), name: 'W'.repeat(70), address1: '路'.repeat(90), address2: '号'.repeat(90), city: '城'.repeat(60), region: '区'.repeat(60) }, now)
+      const svg = renderBillSvg(bill)
+      const customerBlock = svg.match(/<g data-customer="true" data-top="([\d.]+)" data-bottom="([\d.]+)">([\s\S]*?)<\/g>/)!
+      expect(customerBlock).not.toBeNull()
+      const rows = [...customerBlock[3].matchAll(/<text x="[\d.]+" y="([\d.]+)"[^>]*>([^<]*)<\/text>/g)]
+      expect(rows.length).toBeGreaterThan(6)
+      expect(Math.max(...rows.map((match) => Number(match[1])))).toBeLessThan(Number(customerBlock[2]))
+      for (const character of ['路', '号', '城', '区']) expect(customerBlock[3].split(character).length - 1).toBe(character === '路' || character === '号' ? 90 : 60)
+    }
+  })
+
+  it('uses distinct documented layouts rather than recoloring a shared document', () => {
+    const signatures = new Set<string>()
+    for (const entry of billTemplates) {
+      expect(utilityBillSources[entry.id].url).toMatch(/^https:\/\//)
+      const bill = make()
+      bill.template = entry
+      const svg = renderBillSvg(bill)
+      signatures.add(svg.replace(/#[a-f\d]{3,8}/gi, '').replace(/<text[\s\S]*?<\/text>/g, ''))
+      expect(svg).toContain('SAMPLE')
+      expect(svg).not.toMatch(/<image|https:\/\//)
+    }
+    expect(signatures.size).toBe(billTemplates.length)
   })
 })

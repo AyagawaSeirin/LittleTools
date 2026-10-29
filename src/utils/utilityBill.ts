@@ -1,7 +1,6 @@
 import { addressCountries, generateAddressProfiles, isValidAddressPostalCode, type AddressDataPack } from './address'
 
 export type BillCountryCode = 'GB' | 'HK' | 'AU' | 'US' | 'SG' | 'CA' | 'MY' | 'PH' | 'NZ' | 'DE' | 'IT' | 'JP'
-export type BillLayout = 'classic' | 'band' | 'ledger' | 'split'
 export interface BillCountry {
   code: BillCountryCode
   label: string
@@ -23,7 +22,6 @@ export interface BillTemplate {
   kind: 'water' | 'electricity'
   color: string
   pale: string
-  layout: BillLayout
 }
 export interface BillForm {
   title: string
@@ -81,22 +79,22 @@ export const billCountries: BillCountry[] = [
   { code: 'JP', label: 'JP', name: '日本', flag: '🇯🇵', currency: 'JPY', locale: 'ja-JP', regionLabel: '都道府县', uppercase: true, titles: [], rate: 31, fee: 930 },
 ]
 
-// Reference labels describe the selected layout; documents use fictional issuers.
+// Provider names identify layout references. Renderers label every output as an unofficial sample.
 export const billTemplates: BillTemplate[] = [
-  { id: 'gb-water', country: 'GB', name: '水费｜Yorkshire', issuer: 'Northfield Water', kind: 'water', color: '#154c80', pale: '#edf4fa', layout: 'classic' },
-  { id: 'gb-electricity', country: 'GB', name: '电费｜British Gas', issuer: 'Bluehaven Energy', kind: 'electricity', color: '#166ba2', pale: '#edf7fc', layout: 'split' },
-  { id: 'hk-water', country: 'HK', name: '水费｜水务署 WSD', issuer: 'Harbour Water Services', kind: 'water', color: '#264e78', pale: '#f1f5fa', layout: 'ledger' },
-  { id: 'hk-electricity', country: 'HK', name: '电费｜中电 CLP', issuer: 'Harbour Electric', kind: 'electricity', color: '#567d2c', pale: '#f2f5e7', layout: 'split' },
-  { id: 'au-electricity', country: 'AU', name: '电费｜Alinta Energy', issuer: 'Southern Coast Energy', kind: 'electricity', color: '#ba5c2a', pale: '#fcf2e9', layout: 'band' },
-  { id: 'us-electricity', country: 'US', name: '电费｜PG&E', issuer: 'Pacific Valley Energy', kind: 'electricity', color: '#187a9d', pale: '#ecf6fa', layout: 'classic' },
-  { id: 'sg-electricity', country: 'SG', name: '电费｜Senoko', issuer: 'Garden City Power', kind: 'electricity', color: '#aa3345', pale: '#fcf0f1', layout: 'band' },
-  { id: 'ca-electricity', country: 'CA', name: '电费｜Hydro', issuer: 'Maple River Hydro', kind: 'electricity', color: '#315e48', pale: '#eef5ef', layout: 'classic' },
-  { id: 'my-electricity', country: 'MY', name: '电费｜TNB', issuer: 'Meridian Energy', kind: 'electricity', color: '#31578a', pale: '#eff3fa', layout: 'ledger' },
-  { id: 'ph-electricity', country: 'PH', name: '电费｜BENECO', issuer: 'Highland Electric', kind: 'electricity', color: '#775537', pale: '#f8f2e9', layout: 'ledger' },
-  { id: 'nz-electricity', country: 'NZ', name: '电费｜Mercury', issuer: 'Fern Valley Energy', kind: 'electricity', color: '#84651d', pale: '#faf5e5', layout: 'split' },
-  { id: 'de-electricity', country: 'DE', name: '电费｜GREEN', issuer: 'Wiesenstrom', kind: 'electricity', color: '#45734b', pale: '#f0f6ea', layout: 'band' },
-  { id: 'it-electricity', country: 'IT', name: '电费｜A2A Energia', issuer: 'Lucechiara Energia', kind: 'electricity', color: '#735082', pale: '#f6eff8', layout: 'split' },
-  { id: 'jp-electricity', country: 'JP', name: '电费｜TEPCO', issuer: 'Sakura Electric', kind: 'electricity', color: '#285c79', pale: '#eef5f7', layout: 'ledger' },
+  { id: 'gb-water', country: 'GB', name: '水费｜Yorkshire', issuer: 'Yorkshire Water', kind: 'water', color: '#154c80', pale: '#edf4fa' },
+  { id: 'gb-electricity', country: 'GB', name: '电费｜British Gas', issuer: 'British Gas', kind: 'electricity', color: '#273c84', pale: '#e8f4fb' },
+  { id: 'hk-water', country: 'HK', name: '水费｜水务署 WSD', issuer: '水務署 Water Supplies Department', kind: 'water', color: '#264e78', pale: '#f1f5fa' },
+  { id: 'hk-electricity', country: 'HK', name: '电费｜中电 CLP', issuer: 'CLP 中電', kind: 'electricity', color: '#567d2c', pale: '#f2f5e7' },
+  { id: 'au-electricity', country: 'AU', name: '电费｜Alinta Energy', issuer: 'alinta energy', kind: 'electricity', color: '#ba5c2a', pale: '#fcf2e9' },
+  { id: 'us-electricity', country: 'US', name: '电费｜PG&E', issuer: 'PG&E', kind: 'electricity', color: '#187a9d', pale: '#ecf6fa' },
+  { id: 'sg-electricity', country: 'SG', name: '电费｜Senoko', issuer: 'Senoko Energy', kind: 'electricity', color: '#009f91', pale: '#e1f1ed' },
+  { id: 'ca-electricity', country: 'CA', name: '电费｜Hydro', issuer: 'BC Hydro', kind: 'electricity', color: '#315e48', pale: '#eef5ef' },
+  { id: 'my-electricity', country: 'MY', name: '电费｜TNB', issuer: 'TENAGA NASIONAL', kind: 'electricity', color: '#31578a', pale: '#eff3fa' },
+  { id: 'ph-electricity', country: 'PH', name: '电费｜BENECO', issuer: 'BENECO', kind: 'electricity', color: '#775537', pale: '#f8f2e9' },
+  { id: 'nz-electricity', country: 'NZ', name: '电费｜Mercury', issuer: 'MERCURY', kind: 'electricity', color: '#303030', pale: '#fff6b3' },
+  { id: 'de-electricity', country: 'DE', name: '电费｜GREEN', issuer: 'Green Planet Energy', kind: 'electricity', color: '#45734b', pale: '#f0f6ea' },
+  { id: 'it-electricity', country: 'IT', name: '电费｜A2A Energia', issuer: 'A2A Energia', kind: 'electricity', color: '#4e9138', pale: '#eef3e9' },
+  { id: 'jp-electricity', country: 'JP', name: '电费｜TEPCO', issuer: 'TEPCO 東京電力', kind: 'electricity', color: '#285c79', pale: '#eef5f7' },
 ]
 
 export function secureBillRandom() {

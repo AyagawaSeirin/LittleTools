@@ -4,6 +4,7 @@ import { DownloadOutlined, ExpandOutlined, FileTextOutlined, ReloadOutlined } fr
 import ToolPageHeader from '../components/ToolPageHeader.vue'
 import { rememberToolSettings } from '../composables/useToolSettings'
 import { loadAddressPack } from '../utils/address'
+import { utilityBillSources } from '../data/utilityBillSources'
 import {
   billCountries, billTemplates, billFilename, billMoney, createUtilityBill, formatBillName,
   randomBillAddress, randomBillName, validateBillForm, type BillForm, type UtilityBill,
@@ -26,6 +27,15 @@ if (!['random', 'manual'].includes(addressMode.value)) addressMode.value = 'rand
 const country = computed(() => billCountries.find((item) => item.code === countryCode.value)!)
 const templates = computed(() => billTemplates.filter((item) => item.country === countryCode.value))
 const selectedTemplate = computed(() => templates.value.find((item) => item.id === templateId.value)!)
+const selectedSource = computed(() => utilityBillSources[templateId.value])
+const templateThumbnails = computed(() => {
+  const postalCodes: Record<string, string> = { GB: 'SW1A 2AA', HK: '', AU: '2000', US: '94105', SG: '238801', CA: 'V6B 5A1', MY: '50000', PH: '2600', NZ: '1010', DE: '10115', IT: '20121', JP: '100-0005' }
+  const sample = { title: '', name: 'Alex Morgan', address1: '12 Example Street', address2: '', city: 'Sample City', region: '', postalCode: postalCodes[country.value.code] }
+  return Object.fromEntries(templates.value.map((template) => {
+    const bill = createUtilityBill(country.value, template, sample, new Date(2026, 9, 1), () => 0.42)
+    return [template.id, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderBillSvg(bill))}`]
+  }))
+})
 if (!country.value.titles.includes(form.value.title)) form.value.title = country.value.titles[0] || ''
 const loadingAddress = ref(false)
 const generating = ref(false)
@@ -163,7 +173,7 @@ onBeforeUnmount(() => { disposed = true; addressSequence++; generationSequence++
 </script>
 
 <template>
-  <ToolPageHeader title="水电账单演示文档" description="选择模板、填写姓名，一键生成高清账单主图与实拍模拟图" :icon="FileTextOutlined">
+  <ToolPageHeader title="账单生成" description="选择账单样式、填写信息，生成高清主图与实拍模拟图" :icon="FileTextOutlined">
     <template #extra>12 个国家和地区 · 14 个模板</template>
   </ToolPageHeader>
 
@@ -180,14 +190,14 @@ onBeforeUnmount(() => { disposed = true; addressSequence++; generationSequence++
       <div class="bill-field-label template-label">选择模板 <span>{{ country.name }}</span></div>
       <div class="bill-templates">
         <button v-for="item in templates" :key="item.id" type="button" class="bill-template" :class="{ active: templateId === item.id }" :aria-pressed="templateId === item.id" :aria-label="`选择模板：${item.name}`" @click="selectTemplate(item.id)">
-          <span class="template-paper" :class="`layout-${item.layout}`" :style="{ '--bill-ink': item.color, '--bill-tint': item.pale }" aria-hidden="true">
-            <span class="paper-brand">{{ item.issuer }}</span><span class="paper-title">{{ item.kind === 'water' ? 'Water statement' : 'Electricity statement' }}</span>
-            <span class="paper-address"><i></i><i></i><i></i></span><span class="paper-total">{{ country.currency }}</span>
-            <span class="paper-table"><i></i><i></i><i></i><i></i></span>
-            <span class="paper-chart"><i></i><i></i><i></i><i></i><i></i></span>
-          </span>
+          <img class="template-paper" :src="templateThumbnails[item.id]" :alt="`${item.name}实际生成样式`" />
           <span class="template-name">{{ item.name }}</span>
         </button>
+      </div>
+
+      <div v-if="selectedSource" class="bill-layout-source">
+        <p>{{ selectedSource.features }}</p>
+        <a :href="selectedSource.sampleUrl || selectedSource.url" target="_blank" rel="noopener noreferrer">{{ selectedSource.title }} ↗</a>
       </div>
 
       <form class="bill-form" novalidate @submit.prevent="generate">
@@ -257,7 +267,7 @@ onBeforeUnmount(() => { disposed = true; addressSequence++; generationSequence++
   </div>
   <a-alert v-if="error" class="bill-message" type="error" show-icon :message="error" role="alert" />
   <p v-if="notice" class="bill-notice" role="status">{{ notice }}</p>
-  <p class="bill-footnote">模板名称用于区分参考版式；文档使用虚构服务商和示例数据，页脚保留演示说明。输入参数保存在当前浏览器，生成的图片与文档不上传。</p>
+  <p class="bill-footnote">版式参照公开账单样张重绘，机构名称用于标明参考来源。生成内容带示例标识，非机构签发文件。输入参数保存在当前浏览器，生成的图片与文档不上传。</p>
 
   <a-modal v-model:open="fullscreen" title="高清文档预览" :footer="null" :width="1100" wrap-class-name="bill-preview-modal" destroy-on-close>
     <div class="bill-fullscreen-toolbar"><a-radio-group v-model:value="originalSize" button-style="solid"><a-radio-button :value="false">适应窗口</a-radio-button><a-radio-button :value="true">原始尺寸</a-radio-button></a-radio-group><a-button :loading="exporting" @click="download(previewMode === 'main' ? 'png' : 'jpg')"><DownloadOutlined />下载原图</a-button></div>
@@ -281,24 +291,12 @@ onBeforeUnmount(() => { disposed = true; addressSequence++; generationSequence++
 .template-label span { font-weight: 400; color: var(--text-muted); }
 .bill-templates { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 23px; }
 .bill-template { background: transparent; border: 0; padding: 0; color: var(--text-muted); cursor: pointer; text-align: left; max-width: 48%; }
-.template-paper { position: relative; display: block; width: 103px; height: 143px; padding: 10px 8px; background: #fff; color: var(--bill-ink); border: 1px solid #dfe3e7; border-top: 4px solid var(--bill-ink); border-radius: 3px; overflow: hidden; }
+.template-paper { display: block; width: 120px; height: 170px; background: #fff; border: 1px solid #dfe3e7; border-radius: 3px; object-fit: contain; }
 .bill-template.active .template-paper { outline: 2px solid var(--accent-text); outline-offset: 3px; }
 .template-name { display: block; margin-top: 9px; font-size: 11px; line-height: 1.5; }
 .bill-template.active .template-name { color: var(--accent-text); font-weight: 600; }
-.paper-brand { display: block; font-size: 6px; line-height: 1.3; font-weight: 700; white-space: nowrap; }
-.paper-title { display: block; margin-top: 5px; font-size: 4px; }
-.paper-address { display: block; width: 37px; margin-top: 10px; }
-.paper-address i, .paper-table i { display: block; height: 2px; margin: 4px 0; background: #c5cdd5; }
-.paper-address i:last-child { width: 65%; }
-.paper-total { position: absolute; top: 45px; right: 8px; padding: 8px 5px; background: var(--bill-tint); font-size: 7px; font-weight: 600; }
-.paper-table { display: block; margin-top: 14px; border-top: 6px solid var(--bill-tint); }
-.paper-table i { height: 1px; margin: 5px 0; }
-.paper-chart { display: flex; gap: 4px; height: 18px; align-items: end; margin-top: 8px; }
-.paper-chart i { width: 5px; height: 12px; background: var(--bill-ink); opacity: .5; }
-.paper-chart i:nth-child(2n) { height: 17px; }.paper-chart i:nth-child(3n) { height: 9px; }
-.layout-band .paper-brand { margin: -10px -8px 0; padding: 9px 8px; background: var(--bill-ink); color: #fff; }
-.layout-split { border-top-width: 1px; border-left: 4px solid var(--bill-ink); }.layout-split .paper-total { background: var(--bill-ink); color: #fff; }
-.layout-ledger .paper-table { border-top-color: var(--bill-ink); }
+.bill-layout-source { margin: -7px 0 22px; font-size: 11px; color: var(--text-muted); line-height: 1.7; }
+.bill-layout-source p { margin: 0 0 5px; }.bill-layout-source a { color: var(--accent-text); }
 .bill-address-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .bill-text-button { padding: 0; border: 0; background: transparent; color: var(--accent-text); font-size: 11px; cursor: pointer; }
 .bill-text-button:disabled { opacity: .5; cursor: wait; }
